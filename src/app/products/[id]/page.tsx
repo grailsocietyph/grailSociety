@@ -1,79 +1,12 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
-
-interface Product {
-  id: string;
-  title: string;
-  priceFormatted: string;
-  note: string;
-  colorRate: string;
-  size: string;
-  images: string[];
-}
-
-const PRODUCTS_DATA: Record<string, Product> = {
-  "1": {
-    id: "1",
-    title: "Arc'teryx Grotto Toque Beanie in Carob/Canvas (One Size)",
-    priceFormatted: "₱3,900.00",
-    note: "Brand-new/Dead-stock (Authentic)",
-    colorRate: "10/10",
-    size: "One Size",
-    images: [
-      "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?q=80&w=1000&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?q=80&w=1000&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?q=80&w=1000&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1000&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=1000&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1591561954557-26941169b49e?q=80&w=1000&auto=format&fit=crop",
-    ],
-  },
-  "2": {
-    id: "2",
-    title: "Vintage 90's Russell Athletic Full-zip Hoodie Jacket in Gray (Size Large)",
-    priceFormatted: "₱3,000.00",
-    note: "Good Vintage Condition",
-    colorRate: "9/10",
-    size: "Large",
-    images: [
-      "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=1000&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?q=80&w=1000&auto=format&fit=crop",
-    ],
-  },
-};
-
-const SUGGESTED_PRODUCTS = [
-  {
-    id: "2",
-    title: "Vintage 90's Russell Athletic Full-zip Hoodie Jacket in Gray (Size Large)",
-    priceFormatted: "₱3,000.00",
-    image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Adidas Originals Utility 2-in-1 Nylon Cargo Pants",
-    priceFormatted: "₱1,200.00",
-    image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "4",
-    title: "BRAND-NEW Time & Tru Women Shoulder Bag in Snake pattern (One Size)",
-    priceFormatted: "₱1,000.00",
-    image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "5",
-    title: "Nike Elite Backpack Kobe Mamba Sports Academy in Black",
-    priceFormatted: "₱3,000.00",
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop",
-  },
-];
+import { ChevronLeft, ChevronRight, X, Copy, Check, ShoppingBag, Gift } from "lucide-react";
+import { useProducts } from "@/context/ProductContext";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -81,10 +14,34 @@ interface PageProps {
 
 export default function ProductDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
-  const product = PRODUCTS_DATA[resolvedParams.id] || PRODUCTS_DATA["1"];
+  const { products } = useProducts();
 
+  const [mounted, setMounted] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  const product = products.find((p) => p.id === resolvedParams.id) || products[0];
+  
+  // Adjusted logic: Kung iisa lang ang product, kukuha pa rin ito mula sa products list para siguruhing nagpapakita lagi ang section
+  const suggestedProducts = products.length > 1
+    ? products.filter((p) => p.id !== product?.id).slice(0, 4)
+    : products.slice(0, 4);
+
+  if (!mounted || !product) {
+    return (
+      <main className="min-h-screen bg-white flex flex-col justify-between font-helvetica">
+        <Header />
+        <div className="py-32 text-center text-neutral-500">Loading product...</div>
+        <Footer />
+      </main>
+    );
+  }
 
   const handleNextImage = () => {
     setActiveImageIndex((prev) => (prev + 1) % product.images.length);
@@ -92,6 +49,35 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const handlePrevImage = () => {
     setActiveImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+  };
+
+  // Format measurements for clipboard & view
+  const formattedMeasurements = product.measurementsData?.notes
+    ? product.measurementsData.notes
+    : [
+        product.measurementsData?.length ? `Length: ${product.measurementsData.length}` : "",
+        product.measurementsData?.width ? `Width: ${product.measurementsData.width}` : "",
+        product.measurementsData?.waist ? `Waist: ${product.measurementsData.waist}` : "",
+        product.measurementsData?.legOpening ? `Leg Opening: ${product.measurementsData.legOpening}` : "",
+      ].filter(Boolean).join(" | ") || "N/A";
+
+  const modelStatsText = `${product.modelHeightFt}'${product.modelHeightIn}" height and ${product.modelWeightKg} kg`;
+
+  const handleCopyOrderDetails = () => {
+    const mainImageUrl = product.images[0];
+    const orderText = `🛍️ ORDER INQUIRY - GRAIL SOCIETY\n\n` +
+      `• Item: ${product.title}\n` +
+      `• Price: ${product.priceFormatted}\n` +
+      `• Tag Size: ${product.tagSize || "N/A"}\n` +
+      `• Measurements: ${formattedMeasurements}\n` +
+      `• Condition: ${product.condition || "N/A"}\n` +
+      `• Model Details: ${modelStatsText}\n\n` +
+      `🖼️ Image Link: ${mainImageUrl}`;
+
+    navigator.clipboard.writeText(orderText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    });
   };
 
   return (
@@ -106,7 +92,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
               
               {/* Vertical Thumbnail List */}
-              <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[560px] shrink-0">
+              <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0">
                 {product.images.map((img, idx) => (
                   <button
                     key={idx}
@@ -128,7 +114,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Main Active Photo Viewer */}
               <div 
-                className="relative flex-1 aspect-square sm:h-[560px] bg-neutral-100 overflow-hidden rounded-none cursor-zoom-in"
+                className="relative flex-1 aspect-square sm:h-[35rem] bg-neutral-100 overflow-hidden rounded-none cursor-zoom-in"
                 onClick={() => setLightboxIndex(activeImageIndex)}
               >
                 <Image
@@ -148,14 +134,14 @@ export default function ProductDetailPage({ params }: PageProps) {
                       aria-label="Previous image"
                       className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer"
                     >
-                      <ChevronLeft className="h-5 w-5 stroke-[2]" />
+                      <ChevronLeft className="h-5 w-5 stroke-2" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
                       aria-label="Next image"
                       className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer"
                     >
-                      <ChevronRight className="h-5 w-5 stroke-[2]" />
+                      <ChevronRight className="h-5 w-5 stroke-2" />
                     </button>
                   </div>
                 )}
@@ -173,21 +159,53 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </p>
               </div>
 
-              {/* Highlighted How To Order Block (Placed directly after title/price) */}
+              {/* Copy Order Details Button */}
+              <div>
+                <button
+                  onClick={handleCopyOrderDetails}
+                  className="w-full flex items-center justify-center gap-2.5 py-4 bg-black text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-neutral-800 transition-all cursor-pointer shadow-sm"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-400 stroke-[2.5]" />
+                      <span>Copied Order Details!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 stroke-2" />
+                      <span>Copy Order Details</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-[11px] text-neutral-500 text-center mt-2">
+                  Click to copy order details. Paste directly into our Facebook chat!
+                </p>
+              </div>
+
+               {/* Expanded Thrift Specifications */}
+              <div className="space-y-2 text-xs sm:text-sm text-neutral-700 font-normal pt-2 border-t border-neutral-100">
+                <p><span className="font-semibold text-neutral-900">Tag Size:</span> {product.tagSize || "N/A"}</p>
+                <p><span className="font-semibold text-neutral-900">Measurements:</span> {formattedMeasurements}</p>
+                <p><span className="font-semibold text-neutral-900">Condition:</span> {product.condition || "N/A"}</p>
+                <p><span className="font-semibold text-neutral-900">Model Details:</span> {modelStatsText}</p>
+              </div>
+
+              {/* Highlighted How To Order Block */}
               <div className="bg-neutral-50 border border-neutral-200 p-5 rounded-lg space-y-3">
                 <div className="font-bold text-xs tracking-wider uppercase text-black flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 stroke-[2]" />
                   <span>HOW TO ORDER</span>
                 </div>
 
                 <ol className="space-y-2 text-xs sm:text-sm text-neutral-800 leading-relaxed font-normal">
                   <li className="flex items-start gap-2">
                     <span className="font-bold">1.</span>
-                    <span>Screenshot the item you want.</span>
+                    <span>Click <b>Copy Order Details</b> above.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="font-bold">2.</span>
                     <span>
-                      Send screenshot to our Facebook page:{" "}
+                      Paste it into our Facebook page chat:{" "}
                       <a 
                         href="https://www.facebook.com/people/Grail-Society/100075987014852/" 
                         target="_blank" 
@@ -204,48 +222,47 @@ export default function ProductDetailPage({ params }: PageProps) {
                   </li>
                 </ol>
 
-              </div>
-
-              {/* Product Specifications */}
-              <div className="space-y-1.5 text-xs sm:text-sm text-neutral-700 font-normal pt-2">
-                <p><span className="text-neutral-500">Note:</span> {product.note}</p>
-                <p><span className="text-neutral-500">Color rate:</span> {product.colorRate}</p>
-                <p><span className="text-neutral-500">Size:</span> {product.size}</p>
+                <div className="text-xs text-neutral-900 font-semibold pt-2 flex items-center gap-2 mt-2">
+                  <Gift className="h-4 w-4 stroke-[2]" />
+                  <span>Bonus: FREE shipping on every item!</span>
+                </div>
               </div>
 
             </div>
 
           </div>
 
-          {/* You May Also Like Section (Pulled higher with reduced top margin) */}
-          <div className="mt-12 pt-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight mb-8">
-              You may also like
-            </h2>
+          {/* You May Also Like Section */}
+          {suggestedProducts.length > 0 && (
+            <div className="mt-16 pt-8 border-t border-neutral-100">
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight mb-8">
+                You may also like
+              </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-              {SUGGESTED_PRODUCTS.map((item) => (
-                <Link key={item.id} href={`/products/${item.id}`} className="group cursor-pointer">
-                  <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden rounded-none mb-3">
-                    <Image
-                      src={item.image}
-                      alt={item.title}
-                      fill
-                      unoptimized
-                      sizes="(max-width: 640px) 50vw, 25vw"
-                      className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                    />
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-normal text-neutral-800 line-clamp-2 leading-tight">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm font-medium text-neutral-900 mt-1">
-                    {item.priceFormatted}
-                  </p>
-                </Link>
-              ))}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+                {suggestedProducts.map((item) => (
+                  <Link key={item.id} href={`/products/${item.id}`} className="group cursor-pointer">
+                    <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden rounded-none mb-3">
+                      <Image
+                        src={item.images[0] || ""}
+                        alt={item.title}
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 50vw, 25vw"
+                        className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <h3 className="text-xs sm:text-sm font-normal text-neutral-800 line-clamp-2 leading-tight">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm font-medium text-neutral-900 mt-1">
+                      {item.priceFormatted}
+                    </p>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

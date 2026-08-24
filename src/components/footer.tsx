@@ -60,7 +60,7 @@ export default function Footer() {
           <div className="flex items-center space-x-1 text-neutral-500">
             <MapPin className="h-3.5 w-3.5 stroke-[1.8]" />
             <span className="text-[11px] font-medium tracking-wider uppercase">
-              Liliw, Laguna
+              Purok 3, Brgy. Bambang, Nagcarlan, Laguna
             </span>
           </div>
 
