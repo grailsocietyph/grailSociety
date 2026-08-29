@@ -30,7 +30,7 @@ export default function BrandFeature() {
           </p>
 
           {/* Social Links Row (Outside the card) */}
-          <div className="w-full flex items-center space-x-3 mb-6">
+          <div className="w-full flex items-center space-x-3 mb-10">
             <a
               href="mailto:grailsociety.ph@gmail.com"
               aria-label="Email"
@@ -66,7 +66,7 @@ export default function BrandFeature() {
 
           {/* Location Details Card Container (With soft background color and minimalist border) */}
           <div className="w-full bg-neutral-50/70 border border-neutral-200/80 p-5 rounded-2xl space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            <div className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-neutral-400">
               <MapPin className="h-3.5 w-3.5" />
               <span>Location Details</span>
             </div>
