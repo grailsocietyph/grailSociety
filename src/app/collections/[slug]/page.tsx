@@ -5,9 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { useProducts, Product } from "@/context/ProductContext";
 import { 
-  ChevronLeft, 
-  ChevronRight, 
   LayoutGrid, 
   Grid3X3,
   Check,
@@ -15,73 +14,8 @@ import {
   X
 } from "lucide-react";
 
-interface Product {
-  id: string;
-  title: string;
-  priceNum: number;
-  priceFormatted: string;
-  collectionSlug: string; // Used to match the collection
-  images: string[];
-  isSoldOut?: boolean;
-  dateAdded: string;
-}
-
-// Sample product database with assigned collection slugs
-const ALL_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    title: "Arc'teryx Grotto Toque Beanie in Carob/Canvas (One Size)",
-    priceNum: 3900,
-    priceFormatted: "₱3,900.00",
-    collectionSlug: "accessories",
-    dateAdded: "2026-08-15",
-    images: [
-      "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?q=80&w=800&auto=format&fit=crop",
-    ],
-  },
-  {
-    id: "2",
-    title: "Vintage 90's Russell Athletic Full-zip Hoodie Jacket in Gray (Size Large)",
-    priceNum: 3000,
-    priceFormatted: "₱3,000.00",
-    collectionSlug: "hoodies",
-    dateAdded: "2026-08-18",
-    images: [
-      "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?q=80&w=800&auto=format&fit=crop",
-    ],
-  },
-  {
-    id: "3",
-    title: "Adidas Originals Utility 2-in-1 Nylon Cargo Pants",
-    priceNum: 1200,
-    priceFormatted: "₱1,200.00",
-    collectionSlug: "pants",
-    dateAdded: "2026-08-10",
-    images: [
-      "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?q=80&w=800&auto=format&fit=crop",
-    ],
-  },
-  {
-    id: "4",
-    title: "Brand New Time and Tru Women's Lina Shoulder Bag Mauve Pink",
-    priceNum: 1000,
-    priceFormatted: "₱1,000.00",
-    collectionSlug: "bags",
-    dateAdded: "2026-08-12",
-    images: [
-      "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=800&auto=format&fit=crop",
-    ],
-  },
-];
-
 type SortOption = 
   | "Featured" 
-  | "Most relevant" 
-  | "Best selling" 
   | "Alphabetically, A-Z" 
   | "Alphabetically, Z-A" 
   | "Price, low to high" 
@@ -96,34 +30,46 @@ interface PageProps {
 export default function CollectionDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const collectionSlug = resolvedParams.slug;
+  const { products, loading } = useProducts();
 
   // Format title nicely from slug (e.g., "t-shirts" -> "T-Shirts")
   const collectionTitle = collectionSlug
     .split("-")
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
   const [inStockChecked, setInStockChecked] = useState(true);
   const [outOfStockChecked, setOutOfStockChecked] = useState(true);
   const [minPrice, setMinPrice] = useState<string>("0");
-  const [maxPrice, setMaxPrice] = useState<string>("23000");
-  const [currentSort, setCurrentSort] = useState<SortOption>("Best selling");
+  const [maxPrice, setMaxPrice] = useState<string>("50000");
+  const [currentSort, setCurrentSort] = useState<SortOption | null>(null);
   const [isDenseGrid, setIsDenseGrid] = useState(false);
 
-  // Filter products matching the current collection slug
+  // Filter products matching the current collection slug and published status
+  const publishedCollectionProducts = useMemo(() => {
+    return products.filter(
+      (p) => p.status === "published" && p.collectionSlug.toLowerCase() === collectionSlug.toLowerCase()
+    );
+  }, [products, collectionSlug]);
+
   const filteredProducts = useMemo(() => {
     const min = parseFloat(minPrice) || 0;
     const max = parseFloat(maxPrice) || Infinity;
 
-    return ALL_PRODUCTS.filter((product) => {
-      if (product.collectionSlug !== collectionSlug) return false;
+    return publishedCollectionProducts.filter((product) => {
       if (product.isSoldOut && !outOfStockChecked) return false;
       if (!product.isSoldOut && !inStockChecked) return false;
       if (product.priceNum < min || product.priceNum > max) return false;
       return true;
     }).sort((a, b) => {
+      if (!currentSort) return 0;
       switch (currentSort) {
+        case "Featured":
+          // Display all new arrivals first, then other items by newest date
+          if (a.isNewArrival && !b.isNewArrival) return -1;
+          if (!a.isNewArrival && b.isNewArrival) return 1;
+          return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
         case "Alphabetically, A-Z":
           return a.title.localeCompare(b.title);
         case "Alphabetically, Z-A":
@@ -140,12 +86,10 @@ export default function CollectionDetailPage({ params }: PageProps) {
           return 0;
       }
     });
-  }, [collectionSlug, inStockChecked, outOfStockChecked, minPrice, maxPrice, currentSort]);
+  }, [publishedCollectionProducts, inStockChecked, outOfStockChecked, minPrice, maxPrice, currentSort]);
 
   const sortOptionsList: SortOption[] = [
     "Featured",
-    "Most relevant",
-    "Best selling",
     "Alphabetically, A-Z",
     "Alphabetically, Z-A",
     "Price, low to high",
@@ -167,7 +111,7 @@ export default function CollectionDetailPage({ params }: PageProps) {
           {/* Control Bar */}
           <div className="flex items-center justify-between pb-6 mb-8 border-b border-neutral-100">
             <span className="text-neutral-500 text-[15px] font-normal">
-              {filteredProducts.length} items
+              {filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}
             </span>
 
             <div className="flex items-center space-x-6">
@@ -211,7 +155,7 @@ export default function CollectionDetailPage({ params }: PageProps) {
             </div>
           ) : (
             <div className="py-20 text-center text-neutral-500 text-sm">
-              No items available in this collection yet. Check back soon!
+              {loading ? "Loading collection items..." : "No items available in this collection yet. Check back soon!"}
             </div>
           )}
         </section>
@@ -247,7 +191,7 @@ export default function CollectionDetailPage({ params }: PageProps) {
                         return (
                           <button
                             key={opt}
-                            onClick={() => setCurrentSort(opt)}
+                            onClick={() => setCurrentSort((prev) => (prev === opt ? null : opt))}
                             className="flex items-center w-full text-left focus:outline-none group cursor-pointer"
                           >
                             <span className="w-6 flex justify-start shrink-0 text-neutral-900">
@@ -269,24 +213,51 @@ export default function CollectionDetailPage({ params }: PageProps) {
                     <div className="space-y-3 text-sm text-neutral-700">
                       <label className="flex items-center space-x-3 cursor-pointer select-none">
                         <input 
-                          type="checkbox"
-                          checked={inStockChecked}
+                          type="checkbox" 
+                          checked={inStockChecked} 
                           onChange={(e) => setInStockChecked(e.target.checked)}
-                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer"
+                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer" 
                         />
                         <span>In stock</span>
                       </label>
                       <label className="flex items-center space-x-3 cursor-pointer select-none">
                         <input 
-                          type="checkbox"
-                          checked={outOfStockChecked}
+                          type="checkbox" 
+                          checked={outOfStockChecked} 
                           onChange={(e) => setOutOfStockChecked(e.target.checked)}
-                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer"
+                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer" 
                         />
                         <span>Out of stock</span>
                       </label>
                     </div>
                   </div>
+
+                  <div className="border-t border-neutral-100 pt-6">
+                    <h3 className="text-sm font-semibold text-neutral-900 mb-4">Price (₱)</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[11px] text-neutral-500 uppercase mb-1">From</label>
+                        <input 
+                          type="number" 
+                          value={minPrice} 
+                          onChange={(e) => setMinPrice(e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[11px] text-neutral-500 uppercase mb-1">To</label>
+                        <input 
+                          type="number" 
+                          value={maxPrice} 
+                          onChange={(e) => setMaxPrice(e.target.value)}
+                          placeholder="50000"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
@@ -296,8 +267,8 @@ export default function CollectionDetailPage({ params }: PageProps) {
                     setInStockChecked(true);
                     setOutOfStockChecked(true);
                     setMinPrice("0");
-                    setMaxPrice("23000");
-                    setCurrentSort("Best selling");
+                    setMaxPrice("50000");
+                    setCurrentSort(null);
                   }}
                   className="w-full py-3 bg-neutral-100 text-neutral-900 text-sm font-medium hover:bg-neutral-200 transition-colors rounded-xl cursor-pointer"
                 >
@@ -322,7 +293,8 @@ export default function CollectionDetailPage({ params }: PageProps) {
 
 function ProductCard({ product }: { product: Product }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
+  const primaryImage = product.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9";
+  const secondaryImage = product.images?.[1] || primaryImage;
 
   return (
     <Link 
@@ -332,18 +304,16 @@ function ProductCard({ product }: { product: Product }) {
       <div
         className="relative aspect-square w-full overflow-hidden bg-neutral-100 rounded-none mb-3"
         onMouseEnter={() => {
-          setIsHovered(true);
-          if (product.images.length > 1 && currentImageIndex === 0) {
+          if (product.images && product.images.length > 1) {
             setCurrentImageIndex(1);
           }
         }}
         onMouseLeave={() => {
-          setIsHovered(false);
           setCurrentImageIndex(0);
         }}
       >
         <Image
-          src={product.images[currentImageIndex]}
+          src={currentImageIndex === 1 ? secondaryImage : primaryImage}
           alt={product.title}
           fill
           unoptimized

@@ -13,16 +13,16 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-white border-t border-neutral-100 font-helvetica text-xs text-neutral-500">
-      <div className="mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 h-auto sm:h-20 px-4 sm:px-8 py-6 sm:py-0 max-w-360">
+      <div className="mx-auto grid grid-cols-1 sm:grid-cols-3 items-center h-auto sm:h-20 px-4 sm:px-8 py-6 sm:py-0 max-w-360 gap-4 sm:gap-0">
         
         {/* Left: Copyright */}
-        <div className="text-neutral-500">
+        <div className="flex items-center justify-center sm:justify-start text-neutral-500">
           © 2026 Grail Society
         </div>
 
-        {/* Center: Terms and Policies with Pop-up Dropdown */}
+        {/* Center: Terms and Policies with Pop-up Dropdown (Perfect Dead-Center Alignment) */}
         <div 
-          className="relative py-2"
+          className="relative flex items-center justify-center py-2"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
@@ -56,7 +56,7 @@ export default function Footer() {
         </div>
 
         {/* Right: Location Tag + Back to Top Button */}
-        <div className="flex items-center space-x-6 text-neutral-800">
+        <div className="flex items-center justify-center sm:justify-end space-x-6 text-neutral-800">
           <div className="flex items-center space-x-1 text-neutral-500">
             <MapPin className="h-3.5 w-3.5 stroke-[1.8]" />
             <span className="text-[11px] font-medium tracking-wider uppercase">

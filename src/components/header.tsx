@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search, Menu, X } from "lucide-react";
+import { useAnnouncement } from "@/context/AnnouncementContext";
 
 export default function Header() {
+  const { announcement } = useAnnouncement();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -15,6 +17,7 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const pathname = usePathname();
   const isHomePage = pathname === "/";
@@ -59,7 +62,8 @@ export default function Header() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      console.log("Searching for:", searchQuery);
+      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
     }
   };
 
@@ -69,8 +73,35 @@ export default function Header() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-in-out border-none outline-none ${
           isVisible ? "translate-y-0" : "-translate-y-full"
-        } ${isTransparent ? "bg-transparent" : "bg-white/95 backdrop-blur-md"}`}
+        } ${isTransparent ? "bg-transparent" : "bg-white/95 backdrop-blur-md shadow-2xs"}`}
       >
+        {/* ================= TOP BLACK SCROLLING ANNOUNCEMENT TICKER ================= */}
+        {announcement && announcement.isActive && announcement.text.trim() && (
+          <div className="w-full bg-black text-white text-[11px] sm:text-xs py-2 border-b border-neutral-900 overflow-hidden select-none shadow-xs">
+            {announcement.link ? (
+              <Link href={announcement.link} className="block w-full overflow-hidden hover:opacity-85 transition-opacity">
+                <div className="animate-marquee whitespace-nowrap flex items-center gap-8">
+                  {[...Array(6)].map((_, i) => (
+                    <span key={i} className="flex items-center gap-8 font-bold tracking-widest uppercase shrink-0">
+                      <span>{announcement.text}</span>
+                      <span className="text-neutral-500">✦</span>
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            ) : (
+              <div className="animate-marquee whitespace-nowrap flex items-center gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <span key={i} className="flex items-center gap-8 font-bold tracking-widest uppercase shrink-0">
+                    <span>{announcement.text}</span>
+                    <span className="text-neutral-500">✦</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mx-auto grid grid-cols-3 items-center h-16 sm:h-20 lg:h-24 px-4 sm:px-8 max-w-360">
 
           {/* ================= LEFT COLUMN ================= */}

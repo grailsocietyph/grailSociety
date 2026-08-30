@@ -6,7 +6,8 @@ import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { ChevronLeft, ChevronRight, X, Copy, Check, ShoppingBag, Gift } from "lucide-react";
-import { useProducts } from "@/context/ProductContext";
+import { useProducts, Product } from "@/context/ProductContext";
+import { supabase, mapDbProductToProduct, DbProduct } from "@/lib/supabase";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,26 +15,64 @@ interface PageProps {
 
 export default function ProductDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
-  const { products } = useProducts();
+  const productId = resolvedParams.id;
+  const { products, loading: contextLoading } = useProducts();
 
   const [mounted, setMounted] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [directProduct, setDirectProduct] = useState<Product | null>(null);
+  const [directLoading, setDirectLoading] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
-  const product = products.find((p) => p.id === resolvedParams.id) || products[0];
-  
-  // Adjusted logic: Kung iisa lang ang product, kukuha pa rin ito mula sa products list para siguruhing nagpapakita lagi ang section
+  // Find product in context
+  const foundInContext = products.find((p) => p.id === productId);
+
+  // If not found in context, attempt to fetch directly from Supabase
+  useEffect(() => {
+    if (!foundInContext && productId) {
+      let isCancelled = false;
+      setDirectLoading(true);
+
+      async function fetchDirect() {
+        try {
+          const { data, error } = await supabase
+            .from("products")
+            .select("*")
+            .eq("id", productId)
+            .single();
+
+          if (!isCancelled) {
+            if (data && !error) {
+              setDirectProduct(mapDbProductToProduct(data as DbProduct));
+            }
+          }
+        } catch (err) {
+          console.error("Direct fetch product error:", err);
+        } finally {
+          if (!isCancelled) setDirectLoading(false);
+        }
+      }
+
+      fetchDirect();
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+  }, [foundInContext, productId]);
+
+  const product = foundInContext || directProduct || products[0];
+
   const suggestedProducts = products.length > 1
     ? products.filter((p) => p.id !== product?.id).slice(0, 4)
     : products.slice(0, 4);
 
-  if (!mounted || !product) {
+  if (!mounted || (contextLoading && !product) || (directLoading && !product)) {
     return (
       <main className="min-h-screen bg-white flex flex-col justify-between font-helvetica">
         <Header />
@@ -43,12 +82,31 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   }
 
+  if (!product) {
+    return (
+      <main className="min-h-screen bg-white flex flex-col justify-between font-helvetica">
+        <Header />
+        <div className="py-32 text-center space-y-4">
+          <p className="text-neutral-500">Product not found.</p>
+          <Link href="/shop" className="text-sm font-semibold underline">
+            Back to Shop All
+          </Link>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  const productImages = product.images && product.images.length > 0
+    ? product.images
+    : ["https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"];
+
   const handleNextImage = () => {
-    setActiveImageIndex((prev) => (prev + 1) % product.images.length);
+    setActiveImageIndex((prev) => (prev + 1) % productImages.length);
   };
 
   const handlePrevImage = () => {
-    setActiveImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+    setActiveImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
 
   // Format measurements for clipboard & view
@@ -61,17 +119,17 @@ export default function ProductDetailPage({ params }: PageProps) {
         product.measurementsData?.legOpening ? `Leg Opening: ${product.measurementsData.legOpening}` : "",
       ].filter(Boolean).join(" | ") || "N/A";
 
-  const modelStatsText = `${product.modelHeightFt}'${product.modelHeightIn}" height and ${product.modelWeightKg} kg`;
-
   const handleCopyOrderDetails = () => {
-    const mainImageUrl = product.images[0];
+    const mainImageUrl = productImages[0] || "";
+    const productUrl = typeof window !== "undefined" ? window.location.href : "";
+    
     const orderText = `🛍️ ORDER INQUIRY - GRAIL SOCIETY\n\n` +
       `• Item: ${product.title}\n` +
       `• Price: ${product.priceFormatted}\n` +
       `• Tag Size: ${product.tagSize || "N/A"}\n` +
       `• Measurements: ${formattedMeasurements}\n` +
-      `• Condition: ${product.condition || "N/A"}\n` +
-      `• Model Details: ${modelStatsText}\n\n` +
+      `• Condition: ${product.condition || "N/A"}\n\n` +
+      (productUrl ? `🔗 Product Link: ${productUrl}\n` : "") +
       `🖼️ Image Link: ${mainImageUrl}`;
 
     navigator.clipboard.writeText(orderText).then(() => {
@@ -93,7 +151,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               
               {/* Vertical Thumbnail List */}
               <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0">
-                {product.images.map((img, idx) => (
+                {productImages.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
@@ -118,7 +176,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 onClick={() => setLightboxIndex(activeImageIndex)}
               >
                 <Image
-                  src={product.images[activeImageIndex]}
+                  src={productImages[activeImageIndex] || productImages[0]}
                   alt={product.title}
                   fill
                   unoptimized
@@ -127,7 +185,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 />
 
                 {/* Bottom Right Circular Navigation Arrows */}
-                {product.images.length > 1 && (
+                {productImages.length > 1 && (
                   <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
@@ -182,12 +240,11 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </p>
               </div>
 
-               {/* Expanded Thrift Specifications */}
+              {/* Expanded Thrift Specifications */}
               <div className="space-y-2 text-xs sm:text-sm text-neutral-700 font-normal pt-2 border-t border-neutral-100">
                 <p><span className="font-semibold text-neutral-900">Tag Size:</span> {product.tagSize || "N/A"}</p>
                 <p><span className="font-semibold text-neutral-900">Measurements:</span> {formattedMeasurements}</p>
                 <p><span className="font-semibold text-neutral-900">Condition:</span> {product.condition || "N/A"}</p>
-                <p><span className="font-semibold text-neutral-900">Model Details:</span> {modelStatsText}</p>
               </div>
 
               {/* Highlighted How To Order Block */}
@@ -244,7 +301,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   <Link key={item.id} href={`/products/${item.id}`} className="group cursor-pointer">
                     <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden rounded-none mb-3">
                       <Image
-                        src={item.images[0] || ""}
+                        src={item.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"}
                         alt={item.title}
                         fill
                         unoptimized
@@ -272,7 +329,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           <div className="relative h-full flex-1 flex items-center justify-center p-6">
             <div className="relative h-full w-full max-w-5xl">
               <Image
-                src={product.images[lightboxIndex]}
+                src={productImages[lightboxIndex] || productImages[0]}
                 alt="Fullscreen view"
                 fill
                 unoptimized
@@ -288,7 +345,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           </div>
 
           <div className="h-full w-24 border-l border-neutral-100 flex flex-col items-center py-6 overflow-y-auto space-y-3 shrink-0">
-            {product.images.map((img, idx) => (
+            {productImages.map((img, idx) => (
               <button
                 key={idx}
                 onClick={() => setLightboxIndex(idx)}

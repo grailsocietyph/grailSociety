@@ -24,11 +24,11 @@ const COLLECTIONS: CollectionItem[] = [
 
 export default function Collections() {
   return (
-    <section className="mx-auto max-w-360 px-4 sm:px-8 pb-16 font-helvetica">
-      <div className="mb-8">
-        <h1 className="text-4xl sm:text-5xl font-black text-neutral-900 tracking-tight mb-8 sm:mb-10">
-        Collections
-      </h1>
+    <section className="mx-auto max-w-360 px-4 sm:px-8 py-12 sm:py-16 font-helvetica">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-4xl sm:text-5xl font-black text-neutral-900 tracking-tight">
+          Collections
+        </h1>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">

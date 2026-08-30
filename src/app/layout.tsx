@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ProductProvider } from "@/context/ProductContext";
 import { AdminAuthProvider } from "@/context/AdminAuthContext";
+import { AnnouncementProvider } from "@/context/AnnouncementContext";
 
 export const metadata: Metadata = {
   title: "Grail Society",
@@ -11,11 +12,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="font-helvetica bg-white text-neutral-900">
+      <body className="font-helvetica bg-white text-neutral-900 antialiased">
         <AdminAuthProvider>
-          <ProductProvider>
-            {children}
-          </ProductProvider>
+          <AnnouncementProvider>
+            <ProductProvider>
+              {children}
+            </ProductProvider>
+          </AnnouncementProvider>
         </AdminAuthProvider>
       </body>
     </html>

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface AdminAuthContextType {
   isAuthenticated: boolean;
+  isAuthLoaded: boolean;
   login: (passcode: string) => boolean;
   logout: () => void;
 }
@@ -11,20 +12,25 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 // Set your secure passcode here
-const SECURE_PASSCODE = "GrailSociety@2026!";
+const SECURE_PASSCODE = "Grailsocietywillbebig1!";
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
-  // Initialize state directly from sessionStorage to avoid useEffect setState linter errors
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthLoaded, setIsAuthLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
-      return sessionStorage.getItem("grail_admin_authenticated") === "true";
+      const isAuth = sessionStorage.getItem("grail_admin_authenticated") === "true";
+      setIsAuthenticated(isAuth);
+      setIsAuthLoaded(true);
     }
-    return false;
-  });
+  }, []);
 
   const login = (passcode: string) => {
     if (passcode === SECURE_PASSCODE) {
-      sessionStorage.setItem("grail_admin_authenticated", "true");
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("grail_admin_authenticated", "true");
+      }
       setIsAuthenticated(true);
       return true;
     }
@@ -32,12 +38,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    sessionStorage.removeItem("grail_admin_authenticated");
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("grail_admin_authenticated");
+    }
     setIsAuthenticated(false);
   };
 
   return (
-    <AdminAuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AdminAuthContext.Provider value={{ isAuthenticated, isAuthLoaded, login, logout }}>
       {children}
     </AdminAuthContext.Provider>
   );
