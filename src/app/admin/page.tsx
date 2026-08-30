@@ -397,9 +397,6 @@ export default function AdminPage() {
         tagSize: finalTagSize,
         measurementsData,
         condition: condition.trim(),
-        modelHeightFt: "N/A",
-        modelHeightIn: "N/A",
-        modelWeightKg: "N/A",
         images,
         isNewArrival,
         status: targetStatus,
@@ -991,7 +988,7 @@ export default function AdminPage() {
                 <div className="w-full bg-black rounded-xl p-3 border border-neutral-800 text-center overflow-hidden shadow-inner">
                   {announcementActive ? (
                     <div className="animate-marquee whitespace-nowrap flex items-center gap-6">
-                      {[...Array(4)].map((_, i) => (
+                      {[...Array(20)].map((_, i) => (
                         <span key={i} className="flex items-center gap-6 font-bold tracking-widest uppercase text-white text-xs shrink-0">
                           <span>{announcementText.trim() || "Your announcement text..."}</span>
                           <span className="text-neutral-500">✦</span>

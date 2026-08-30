@@ -18,9 +18,6 @@ export interface Product {
     notes?: string;
   };
   condition: string;
-  modelHeightFt: string;
-  modelHeightIn: string;
-  modelWeightKg: string;
   images: string[];
   isNewArrival: boolean;
   status: "draft" | "published";
@@ -155,7 +152,8 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
       if (insertError) {
         console.error("Supabase insert error:", insertError);
-        return productWithId;
+        setProducts((prev) => prev.filter((p) => p.id !== tempId));
+        throw new Error(insertError.message);
       }
 
       if (data) {
@@ -164,13 +162,16 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         return savedProduct;
       }
       return productWithId;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add product to Supabase:", err);
-      return productWithId;
+      setProducts((prev) => prev.filter((p) => p.id !== tempId));
+      throw err;
     }
   };
 
   const updateProduct = async (id: string, updatedFields: Partial<Product>): Promise<boolean> => {
+    const previous = products.find((p) => p.id === id);
+
     // Optimistic state update
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p))
@@ -185,16 +186,24 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
       if (updateError) {
         console.error("Supabase update error:", updateError);
-        return false;
+        if (previous) {
+          setProducts((prev) => prev.map((p) => (p.id === id ? previous : p)));
+        }
+        throw new Error(updateError.message);
       }
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update product in Supabase:", err);
-      return false;
+      if (previous) {
+        setProducts((prev) => prev.map((p) => (p.id === id ? previous : p)));
+      }
+      throw err;
     }
   };
 
   const deleteProduct = async (id: string): Promise<boolean> => {
+    const previous = products.find((p) => p.id === id);
+
     // Optimistic state update
     setProducts((prev) => prev.filter((p) => p.id !== id));
 
@@ -206,12 +215,18 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
       if (deleteError) {
         console.error("Supabase delete error:", deleteError);
-        return false;
+        if (previous) {
+          setProducts((prev) => [previous, ...prev]);
+        }
+        throw new Error(deleteError.message);
       }
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete product from Supabase:", err);
-      return false;
+      if (previous) {
+        setProducts((prev) => [previous, ...prev]);
+      }
+      throw err;
     }
   };
 

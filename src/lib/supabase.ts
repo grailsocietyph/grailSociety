@@ -19,9 +19,6 @@ export interface DbProduct {
   tag_size: string;
   measurements_data: Record<string, string | undefined>;
   condition: string;
-  model_height_ft: string;
-  model_height_in: string;
-  model_weight_kg: string;
   images: string[];
   is_new_arrival: boolean;
   status: "draft" | "published";
@@ -32,6 +29,7 @@ export interface DbProduct {
 }
 
 export function mapDbProductToProduct(row: DbProduct): Product {
+  const measurements = (row.measurements_data as Record<string, string | undefined>) || {};
   return {
     id: row.id,
     title: row.title,
@@ -39,11 +37,8 @@ export function mapDbProductToProduct(row: DbProduct): Product {
     priceFormatted: row.price_formatted,
     collectionSlug: row.collection_slug || "t-shirts",
     tagSize: row.tag_size || "M",
-    measurementsData: row.measurements_data || {},
+    measurementsData: measurements,
     condition: row.condition || "",
-    modelHeightFt: row.model_height_ft || "5",
-    modelHeightIn: row.model_height_in || "8",
-    modelWeightKg: row.model_weight_kg || "81",
     images: Array.isArray(row.images) ? row.images : [],
     isNewArrival: Boolean(row.is_new_arrival),
     status: (row.status as "draft" | "published") || "draft",
@@ -63,9 +58,6 @@ export function mapProductToDbProduct(product: Partial<Product>): Partial<DbProd
   if (product.tagSize !== undefined) dbItem.tag_size = product.tagSize;
   if (product.measurementsData !== undefined) dbItem.measurements_data = product.measurementsData;
   if (product.condition !== undefined) dbItem.condition = product.condition;
-  if (product.modelHeightFt !== undefined) dbItem.model_height_ft = product.modelHeightFt;
-  if (product.modelHeightIn !== undefined) dbItem.model_height_in = product.modelHeightIn;
-  if (product.modelWeightKg !== undefined) dbItem.model_weight_kg = product.modelWeightKg;
   if (product.images !== undefined) dbItem.images = product.images;
   if (product.isNewArrival !== undefined) dbItem.is_new_arrival = product.isNewArrival;
   if (product.status !== undefined) dbItem.status = product.status;

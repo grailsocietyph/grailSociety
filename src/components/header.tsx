@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, ArrowRight } from "lucide-react";
 import { useAnnouncement } from "@/context/AnnouncementContext";
+import { useProducts } from "@/context/ProductContext";
 
 export default function Header() {
   const { announcement } = useAnnouncement();
+  const { products } = useProducts();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -21,6 +23,24 @@ export default function Header() {
 
   const pathname = usePathname();
   const isHomePage = pathname === "/";
+
+  // Filter published matching products for search suggestions
+  const matchingProducts = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return [];
+    return products.filter((product) => {
+      if (product.status !== "published") return false;
+      const matchTitle = (product.title || "").toLowerCase().includes(q);
+      const matchCol = (product.collectionSlug || "").toLowerCase().includes(q);
+      const matchCond = (product.condition || "").toLowerCase().includes(q);
+      const matchSize = (product.tagSize || "").toLowerCase().includes(q);
+      return matchTitle || matchCol || matchCond || matchSize;
+    });
+  }, [products, searchQuery]);
+
+  const suggestedProducts = useMemo(() => {
+    return matchingProducts.slice(0, 5);
+  }, [matchingProducts]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,12 +79,20 @@ export default function Header() {
   const isTransparent = isHomePage && !isScrolled;
   const logoSrc = isTransparent ? "/white-logo.png" : "/black-logo.png";
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
       setIsSearchOpen(false);
+      setIsMenuOpen(false);
     }
+  };
+
+  const handleSelectProduct = (productId: string) => {
+    setIsSearchOpen(false);
+    setIsMenuOpen(false);
+    setSearchQuery("");
+    router.push(`/products/${productId}`);
   };
 
   return (
@@ -81,7 +109,7 @@ export default function Header() {
             {announcement.link ? (
               <Link href={announcement.link} className="block w-full overflow-hidden hover:opacity-85 transition-opacity">
                 <div className="animate-marquee whitespace-nowrap flex items-center gap-8">
-                  {[...Array(6)].map((_, i) => (
+                  {[...Array(24)].map((_, i) => (
                     <span key={i} className="flex items-center gap-8 font-bold tracking-widest uppercase shrink-0">
                       <span>{announcement.text}</span>
                       <span className="text-neutral-500">✦</span>
@@ -91,7 +119,7 @@ export default function Header() {
               </Link>
             ) : (
               <div className="animate-marquee whitespace-nowrap flex items-center gap-8">
-                {[...Array(6)].map((_, i) => (
+                {[...Array(24)].map((_, i) => (
                   <span key={i} className="flex items-center gap-8 font-bold tracking-widest uppercase shrink-0">
                     <span>{announcement.text}</span>
                     <span className="text-neutral-500">✦</span>
@@ -156,15 +184,20 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* ================= RIGHT COLUMN (Expanded Search Bar) ================= */}
+          {/* ================= RIGHT COLUMN (Search Bar + Suggestions) ================= */}
           <div className="flex items-center justify-end" ref={searchRef}>
-            <div className={`relative flex items-center transition-all duration-300 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[360px]`}>
+            <div className="relative flex items-center transition-all duration-300 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[360px]">
               {isSearchOpen ? (
                 <form onSubmit={handleSearchSubmit} className="w-full flex items-center relative">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setIsSearchOpen(false);
+                      }
+                    }}
                     placeholder="Search drops, brands, items..."
                     autoFocus
                     className={`w-full py-2 pl-3 pr-8 text-xs sm:text-sm bg-transparent border-b transition-colors focus:outline-none ${
@@ -175,7 +208,10 @@ export default function Header() {
                   />
                   <button
                     type="button"
-                    onClick={() => setIsSearchOpen(false)}
+                    onClick={() => {
+                      setIsSearchOpen(false);
+                      setSearchQuery("");
+                    }}
                     aria-label="Close search"
                     className={`absolute right-1 p-1 hover:opacity-75 transition-opacity cursor-pointer ${
                       isTransparent ? "text-white" : "text-neutral-700"
@@ -198,6 +234,82 @@ export default function Header() {
                   <Search className="h-4 w-4 stroke-[1.8] shrink-0 ml-2" />
                 </button>
               )}
+
+              {/* ================= SEARCH SUGGESTIONS POPUP ================= */}
+              {isSearchOpen && searchQuery.trim().length > 0 && (
+                <div className="absolute right-0 top-full mt-3 w-[320px] sm:w-[380px] max-w-[calc(100vw-2rem)] bg-white text-neutral-900 rounded-2xl border border-neutral-200 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 font-helvetica">
+                  
+                  {/* Dropdown Header */}
+                  <div className="px-4 py-2.5 border-b border-neutral-100 flex items-center justify-between text-[11px] text-neutral-400 font-semibold uppercase tracking-wider bg-neutral-50/70">
+                    <span>Suggested Items ({matchingProducts.length})</span>
+                    <span className="text-[10px] font-normal lowercase text-neutral-400">press enter to search</span>
+                  </div>
+
+                  {/* Suggestions List */}
+                  {suggestedProducts.length > 0 ? (
+                    <div className="divide-y divide-neutral-100 max-h-[340px] overflow-y-auto">
+                      {suggestedProducts.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => handleSelectProduct(item.id)}
+                          className="flex items-center gap-3.5 p-3 hover:bg-neutral-50 transition-colors group cursor-pointer"
+                        >
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200/70">
+                            <Image
+                              src={item.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"}
+                              alt={item.title}
+                              fill
+                              unoptimized
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-medium text-neutral-900 truncate group-hover:text-black">
+                              {item.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-neutral-500">
+                              {item.collectionSlug && (
+                                <span className="capitalize">{item.collectionSlug}</span>
+                              )}
+                              {item.collectionSlug && item.tagSize && <span>•</span>}
+                              {item.tagSize && (
+                                <span>Size {item.tagSize}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs sm:text-sm font-bold text-neutral-900">
+                              {item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`}
+                            </p>
+                            {item.isSoldOut && (
+                              <span className="text-[10px] text-neutral-400 font-medium block">Sold out</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs sm:text-sm text-neutral-500">
+                      <p className="font-medium text-neutral-800 mb-1">No products found</p>
+                      <p className="text-xs text-neutral-400">No matching items for &ldquo;{searchQuery}&rdquo;</p>
+                    </div>
+                  )}
+
+                  {/* Dropdown Footer: View All Matches */}
+                  {matchingProducts.length > 0 && (
+                    <div className="p-2.5 bg-neutral-50 border-t border-neutral-100 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleSearchSubmit()}
+                        className="w-full py-2 text-xs font-semibold text-neutral-900 hover:text-black hover:underline cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <span>View all {matchingProducts.length} results</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -206,8 +318,17 @@ export default function Header() {
 
       {/* ================= MOBILE DRAWER ================= */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-100 bg-white flex flex-col px-6 py-6 font-helvetica md:hidden animate-in fade-in duration-200">
-          <div className="flex justify-start">
+        <div className="fixed inset-0 z-100 bg-white flex flex-col px-6 py-6 font-helvetica md:hidden animate-in fade-in duration-200 overflow-y-auto">
+          <div className="flex items-center justify-between">
+            <Link href="/" onClick={() => setIsMenuOpen(false)}>
+              <Image
+                src="/black-logo.png"
+                alt="Grail Society"
+                width={120}
+                height={60}
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
             <button
               onClick={() => setIsMenuOpen(false)}
               aria-label="Close Menu"
@@ -217,6 +338,70 @@ export default function Header() {
             </button>
           </div>
 
+          {/* Mobile Search Input */}
+          <div className="mt-6">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSearchSubmit();
+              }}
+              className="relative flex items-center"
+            >
+              <Search className="absolute left-3.5 h-4 w-4 text-neutral-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search drops, brands, items..."
+                className="w-full pl-10 pr-4 py-2.5 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+              />
+            </form>
+
+            {/* Mobile Search Suggestions */}
+            {searchQuery.trim().length > 0 && (
+              <div className="mt-3 bg-neutral-50 rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
+                <div className="px-3 py-2 text-[10px] font-bold text-neutral-400 uppercase tracking-wider border-b border-neutral-200/60">
+                  Suggestions ({matchingProducts.length})
+                </div>
+                {suggestedProducts.length > 0 ? (
+                  <div className="divide-y divide-neutral-200/50 max-h-60 overflow-y-auto">
+                    {suggestedProducts.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSelectProduct(item.id)}
+                        className="flex items-center gap-3 p-2.5 hover:bg-neutral-100 transition-colors cursor-pointer"
+                      >
+                        <div className="relative w-10 h-10 rounded-md overflow-hidden bg-neutral-200 shrink-0">
+                          <Image
+                            src={item.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"}
+                            alt={item.title}
+                            fill
+                            unoptimized
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-neutral-900 truncate">{item.title}</p>
+                          <p className="text-[11px] text-neutral-500">{item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleSearchSubmit()}
+                      className="w-full py-2.5 text-center text-xs font-bold text-neutral-900 hover:bg-neutral-100 transition-colors border-t border-neutral-200/60"
+                    >
+                      View all {matchingProducts.length} results →
+                    </button>
+                  </div>
+                ) : (
+                  <p className="p-3 text-xs text-neutral-500 text-center">No matching products found</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Navigation Links */}
           <nav className="flex flex-col space-y-6 mt-8 text-[28px] font-normal tracking-tight text-neutral-900">
             <Link href="/" onClick={() => setIsMenuOpen(false)}>
               Home
