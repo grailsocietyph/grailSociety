@@ -47,3 +47,12 @@ body {
 .animate-marquee:hover {
   animation-play-state: paused;
 }
+
+/* Hide scrollbars for clean vertical/horizontal thumbnail strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

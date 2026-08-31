@@ -68,11 +68,12 @@ export default function BrandFeature() {
             </a>
           </div>
 
-          {/* Full-Width Two-Column Location Card (Aligned with search margin with generous airy spacing) */}
-          <div className="w-full bg-neutral-50/80 border border-neutral-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 items-center">
+          {/* Full-Width Two-Column Location Card */}
+          <div className="w-full bg-neutral-50/80 border border-neutral-200/90 rounded-2xl p-6 sm:p-7 shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 items-center">
+              
               {/* Left Column: Text Info */}
-              <div className="space-y-4 text-sm text-neutral-800">
+              <div className="space-y-4 text-sm">
                 <div>
                   <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
                     Location Details
@@ -80,16 +81,31 @@ export default function BrandFeature() {
                   <p className="font-bold text-neutral-900 uppercase tracking-wide text-lg sm:text-xl">
                     EC Carwash
                   </p>
+                  <div className="space-y-0.5 text-neutral-700 mt-1">
+                    <p className="font-medium leading-relaxed">Purok 3, Brgy. Bambang, Nagcarlan, Laguna</p>
+                    <p className="text-neutral-500 font-normal text-xs">(Gray Apartment)</p>
+                  </div>
                 </div>
 
-                <div className="space-y-1 text-neutral-700">
-                  <p className="font-medium leading-relaxed">Purok 3, Brgy. Bambang, Nagcarlan, Laguna</p>
-                  <p className="text-neutral-500 font-normal text-xs">(Gray Apartment)</p>
-                </div>
-
-                <div className="flex items-center gap-2.5 pt-1 text-neutral-900 font-bold text-sm sm:text-base">
+                <div className="flex items-center gap-2.5 text-neutral-900 font-bold text-sm sm:text-base">
                   <Phone className="h-4 w-4 shrink-0 text-neutral-700" />
-                  <span>09762183355</span>
+                  <a href="tel:09762183355" className="hover:underline">09762183355</a>
+                </div>
+
+                {/* Schedule Visit Notice */}
+                <div className="pt-3 border-t border-neutral-200/80 space-y-1">
+                  <p className="text-xs text-neutral-500">
+                    Want to see items in person?
+                  </p>
+                  <a
+                    href="https://www.facebook.com/people/Grail-Society/100075987014852/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-neutral-900 hover:text-black transition-colors group"
+                  >
+                    <span>Schedule visit via Facebook</span>
+                    <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                  </a>
                 </div>
               </div>
 
@@ -105,6 +121,7 @@ export default function BrandFeature() {
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
+
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use, useEffect } from "react";
+import { useState, use, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/header";
@@ -21,11 +21,11 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [mounted, setMounted] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [activeScrollIndex, setActiveScrollIndex] = useState(0);
+  const lightboxContainerRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [directProduct, setDirectProduct] = useState<Product | null>(null);
   const [directLoading, setDirectLoading] = useState(false);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -78,33 +78,84 @@ export default function ProductDetailPage({ params }: PageProps) {
     ? products.filter((p) => p.id !== product?.id).slice(0, 4)
     : products.slice(0, 4);
 
-  // Lock body scroll and prevent touch scrolling when lightbox is open
+  // Auto-scroll to clicked image when lightbox opens & lock body scroll
   useEffect(() => {
     if (lightboxIndex !== null) {
       document.body.style.overflow = "hidden";
+      setActiveScrollIndex(lightboxIndex);
+      
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`lightbox-img-${lightboxIndex}`);
+        if (el) {
+          el.scrollIntoView({ block: "start" });
+        }
+      }, 60);
+
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = "";
+      };
     } else {
       document.body.style.overflow = "";
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [lightboxIndex]);
+
+  // IntersectionObserver to sync active thumbnail while scrolling inside the lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const items = document.querySelectorAll(".lightbox-scroll-item");
+    if (!items.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number(entry.target.getAttribute("data-index"));
+            if (!isNaN(index)) {
+              setActiveScrollIndex(index);
+            }
+          }
+        });
+      },
+      {
+        root: lightboxContainerRef.current,
+        threshold: 0.5,
+      }
+    );
+
+    items.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [lightboxIndex, productImages.length]);
+
+  // Auto-scroll mobile bottom thumbnail into view when active image changes
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const mobileThumb = document.getElementById(`mobile-thumb-${activeScrollIndex}`);
+    if (mobileThumb) {
+      mobileThumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeScrollIndex, lightboxIndex]);
 
   // Keyboard navigation for Lightbox
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightboxIndex(null);
-      if (e.key === "ArrowLeft") {
-        setLightboxIndex((prev) => (prev !== null ? (prev - 1 + productImages.length) % productImages.length : 0));
-      }
-      if (e.key === "ArrowRight") {
-        setLightboxIndex((prev) => (prev !== null ? (prev + 1) % productImages.length : 0));
+      if (e.key === "Escape") {
+        setLightboxIndex(null);
+      } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        const nextIdx = Math.min(productImages.length - 1, activeScrollIndex + 1);
+        const el = document.getElementById(`lightbox-img-${nextIdx}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        const prevIdx = Math.max(0, activeScrollIndex - 1);
+        const el = document.getElementById(`lightbox-img-${prevIdx}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxIndex, productImages.length]);
+  }, [lightboxIndex, activeScrollIndex, productImages.length]);
 
   const handleNextImage = () => {
     setActiveImageIndex((prev) => (prev + 1) % productImages.length);
@@ -113,33 +164,6 @@ export default function ProductDetailPage({ params }: PageProps) {
   const handlePrevImage = () => {
     setActiveImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
-
-  const onTouchStartHandler = (e: React.TouchEvent) => {
-    setTouchEndX(null);
-    setTouchStartX(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMoveHandler = (e: React.TouchEvent) => {
-    setTouchEndX(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEndHandler = () => {
-    if (!touchStartX || !touchEndX) return;
-    const distance = touchStartX - touchEndX;
-    if (distance > 45) {
-      // Swiped Left -> Next
-      setLightboxIndex((prev) => (prev !== null ? (prev + 1) % productImages.length : 0));
-    } else if (distance < -45) {
-      // Swiped Right -> Prev
-      setLightboxIndex((prev) => (prev !== null ? (prev - 1 + productImages.length) % productImages.length : 0));
-    }
-    setTouchStartX(null);
-    setTouchEndX(null);
-  };
-
-  const safeLightboxIndex = lightboxIndex !== null
-    ? Math.max(0, Math.min(lightboxIndex, productImages.length - 1))
-    : 0;
 
   // Format measurements for clipboard & view
   const formattedMeasurements = product?.measurementsData?.notes
@@ -399,88 +423,105 @@ export default function ProductDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* ================= FULLSCREEN LIGHTBOX MODAL (Mobile-Optimized & Crash-Proof) ================= */}
+      {/* ================= FULLSCREEN SCROLLABLE GALLERY MODAL (Full Bleed, Desktop Right Rail, Mobile Bottom Strip) ================= */}
       {lightboxIndex !== null && (
         <div 
-          className="fixed inset-0 z-100 bg-black/95 backdrop-blur-md flex flex-col justify-between font-helvetica select-none animate-in fade-in duration-200"
-          onTouchStart={onTouchStartHandler}
-          onTouchMove={onTouchMoveHandler}
-          onTouchEnd={onTouchEndHandler}
+          ref={lightboxContainerRef}
+          className="fixed inset-0 z-100 bg-white overflow-y-auto overflow-x-hidden font-helvetica select-none animate-in fade-in duration-200"
         >
-          {/* Top Bar: Counter + Close Button */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4 z-20">
-            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-white text-xs tracking-wider font-medium">
-              {safeLightboxIndex + 1} / {productImages.length}
+          {/* Top Right: Clean Circular Close Button */}
+          <button
+            onClick={() => setLightboxIndex(null)}
+            aria-label="Close Full View"
+            className="fixed top-3.5 right-3.5 sm:top-5 sm:right-6 z-50 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-neutral-900 shadow-md border border-neutral-200/80 flex items-center justify-center transition-all cursor-pointer backdrop-blur-md hover:scale-105"
+          >
+            <X className="h-5 w-5 stroke-[1.75]" />
+          </button>
+
+          {/* Desktop Right-Side Vertical Thumbnails Rail */}
+          {productImages.length > 1 && (
+            <div className="hidden sm:flex fixed right-4 sm:right-6 top-20 bottom-6 z-40 flex-col gap-2 sm:gap-2.5 overflow-y-auto no-scrollbar py-2 px-1 max-h-[calc(100vh-6.5rem)]">
+              {productImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    const el = document.getElementById(`lightbox-img-${idx}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  aria-label={`Jump to photo ${idx + 1}`}
+                  className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-xs overflow-hidden border-2 transition-all cursor-pointer shrink-0 shadow-2xs ${
+                    activeScrollIndex === idx
+                      ? "border-black scale-105 opacity-100 ring-2 ring-black/20"
+                      : "border-neutral-200/80 opacity-60 hover:opacity-100 bg-white"
+                  }`}
+                >
+                  <Image
+                    src={img}
+                    alt={`Thumb ${idx + 1}`}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </button>
+              ))}
             </div>
+          )}
 
-            <button
-              onClick={() => setLightboxIndex(null)}
-              aria-label="Close Lightbox"
-              className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
-          {/* Main Image Stage */}
-          <div className="relative flex-1 w-full flex items-center justify-center px-4 sm:px-12 py-2 overflow-hidden">
-            
-            {/* Prev Image Arrow */}
-            {productImages.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLightboxIndex((prev) => (prev !== null ? (prev - 1 + productImages.length) % productImages.length : 0));
-                }}
-                aria-label="Previous Image"
-                className="absolute left-3 sm:left-6 z-20 p-3 bg-black/40 hover:bg-black/80 text-white rounded-full transition-all cursor-pointer backdrop-blur-xs"
-              >
-                <ChevronLeft className="h-6 w-6 stroke-2" />
-              </button>
-            )}
-
-            {/* Current Fullscreen Image */}
-            <div className="relative w-full h-full max-w-5xl max-h-[75vh] sm:max-h-[82vh] flex items-center justify-center">
-              <Image
-                src={productImages[safeLightboxIndex] || productImages[0]}
-                alt={`Photo ${safeLightboxIndex + 1}`}
-                fill
-                unoptimized
-                priority
-                className="object-contain object-center"
-              />
+          {/* Mobile Bottom Horizontal Thumbnails Strip */}
+          {productImages.length > 1 && (
+            <div className="flex sm:hidden fixed bottom-3 inset-x-0 z-40 items-center justify-start gap-1.5 px-3 overflow-x-auto no-scrollbar py-1">
+              {productImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  id={`mobile-thumb-${idx}`}
+                  onClick={() => {
+                    const el = document.getElementById(`lightbox-img-${idx}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  aria-label={`Jump to photo ${idx + 1}`}
+                  className={`relative w-11 h-11 rounded-xs overflow-hidden border-2 transition-all cursor-pointer shrink-0 shadow-2xs ${
+                    activeScrollIndex === idx
+                      ? "border-black scale-105 opacity-100 ring-2 ring-black/20"
+                      : "border-neutral-200/80 opacity-60 hover:opacity-100 bg-white"
+                  }`}
+                >
+                  <Image
+                    src={img}
+                    alt={`Thumb ${idx + 1}`}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </button>
+              ))}
             </div>
+          )}
 
-            {/* Next Image Arrow */}
-            {productImages.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLightboxIndex((prev) => (prev !== null ? (prev + 1) % productImages.length : 0));
-                }}
-                aria-label="Next Image"
-                className="absolute right-3 sm:right-6 z-20 p-3 bg-black/40 hover:bg-black/80 text-white rounded-full transition-all cursor-pointer backdrop-blur-xs"
-              >
-                <ChevronRight className="h-6 w-6 stroke-2" />
-              </button>
-            )}
-          </div>
-
-          {/* Bottom Thumbnails Strip */}
-          <div className="px-4 py-4 sm:py-5 flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto z-20 max-w-full">
-            {productImages.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setLightboxIndex(idx)}
-                className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-md overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                  safeLightboxIndex === idx
-                    ? "border-white scale-105 opacity-100"
-                    : "border-transparent opacity-40 hover:opacity-80"
-                }`}
-              >
-                <Image src={img} alt={`Thumb ${idx + 1}`} fill unoptimized className="object-cover" />
-              </button>
-            ))}
+          {/* Vertically Stacked Full-Bleed Images Feed */}
+          <div className="w-full flex flex-col items-center pt-0 pb-16 sm:pb-8 sm:pr-24">
+            <div className="w-full max-w-6xl flex flex-col items-center gap-0">
+              {productImages.map((img, idx) => (
+                <div
+                  key={idx}
+                  id={`lightbox-img-${idx}`}
+                  data-index={idx}
+                  className="lightbox-scroll-item relative w-full aspect-square md:h-[96vh] md:max-w-5xl bg-white overflow-hidden flex items-center justify-center"
+                >
+                  <Image
+                    src={img}
+                    alt={`${product.title} photo ${idx + 1}`}
+                    fill
+                    unoptimized
+                    priority={idx === 0 || idx === lightboxIndex}
+                    className="object-contain object-center"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

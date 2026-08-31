@@ -223,13 +223,13 @@ export default function AdminPage() {
 
     setUploadError(null);
 
-    if (images.length >= 9) {
-      setUploadError("Maximum 9 images allowed per product. Please delete an image first.");
+    if (images.length >= 20) {
+      setUploadError("Maximum 20 images allowed per product. Please delete an image first.");
       e.target.value = "";
       return;
     }
 
-    const remainingSlots = 9 - images.length;
+    const remainingSlots = 20 - images.length;
     if (files.length > remainingSlots) {
       setUploadError(`You can only upload up to ${remainingSlots} more image(s). You selected ${files.length}.`);
       e.target.value = "";
@@ -273,7 +273,7 @@ export default function AdminPage() {
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);
-      setImages((prev) => [...prev, ...uploadedUrls.filter(Boolean)].slice(0, 9));
+      setImages((prev) => [...prev, ...uploadedUrls.filter(Boolean)].slice(0, 20));
       if (errors.images) {
         setErrors((prev) => ({ ...prev, images: "" }));
       }
@@ -1481,7 +1481,7 @@ export default function AdminPage() {
                     <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
                       Product Photos <span className="text-red-500">*</span>
                     </h3>
-                    <span className="text-xs text-neutral-500 font-medium">{images.length} / 9 photos</span>
+                    <span className="text-xs text-neutral-500 font-medium">{images.length} / 20 photos</span>
                   </div>
 
                   {/* Inline Upload Alert Error */}
@@ -1504,14 +1504,14 @@ export default function AdminPage() {
                       <>
                         <Upload className="h-6 w-6 text-neutral-500 mb-2" />
                         <span className="text-sm font-medium text-neutral-900">Click to upload photos</span>
-                        <span className="text-xs text-neutral-400 mt-1">PNG, JPG, WEBP up to 10MB each (max 9 photos)</span>
+                        <span className="text-xs text-neutral-400 mt-1">PNG, JPG, WEBP up to 10MB each (max 20 photos)</span>
                       </>
                     )}
                     <input
                       type="file"
                       multiple
                       accept="image/*"
-                      disabled={uploadingCount > 0 || images.length >= 9}
+                      disabled={uploadingCount > 0 || images.length >= 20}
                       onChange={handleImageUpload}
                       className="hidden"
                     />
