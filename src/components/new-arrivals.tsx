@@ -89,14 +89,10 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
       </div>
 
       <div className="space-y-0.5">
-        <h3 className={`font-normal text-neutral-800 line-clamp-2 leading-tight ${
-          isHero ? "text-xs sm:text-sm font-bold text-neutral-900" : "text-xs sm:text-sm"
-        }`}>
+        <h3 className="text-xs sm:text-sm font-normal text-neutral-800 line-clamp-2 leading-tight">
           {product.title}
         </h3>
-        <p className={`font-medium text-neutral-900 ${
-          isHero ? "text-xs sm:text-sm font-semibold" : "text-xs sm:text-sm"
-        }`}>
+        <p className="text-xs sm:text-sm font-medium text-neutral-900">
           {product.priceFormatted}
         </p>
       </div>

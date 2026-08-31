@@ -76,6 +76,18 @@ export default function Header() {
     };
   }, [lastScrollY]);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
+
   const isTransparent = isHomePage && !isScrolled;
   const logoSrc = isTransparent ? "/white-logo.png" : "/black-logo.png";
 
@@ -186,9 +198,51 @@ export default function Header() {
 
           {/* ================= RIGHT COLUMN (Search Bar + Suggestions) ================= */}
           <div className="flex items-center justify-end" ref={searchRef}>
-            <div className="relative flex items-center transition-all duration-300 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[360px]">
+            {/* Mobile Search Active Overlay Header */}
+            {isSearchOpen && (
+              <div className="sm:hidden absolute inset-0 z-30 flex items-center px-4 bg-white/98 backdrop-blur-md shadow-xs transition-all animate-in fade-in duration-150">
+                <form onSubmit={handleSearchSubmit} className="w-full flex items-center gap-3">
+                  <Search className="h-4 w-4 text-neutral-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setIsSearchOpen(false);
+                      }
+                    }}
+                    placeholder="Search drops, brands, items..."
+                    autoFocus
+                    className="flex-1 py-2 text-sm text-neutral-900 bg-transparent focus:outline-none placeholder:text-neutral-400 font-helvetica"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSearchOpen(false);
+                      setSearchQuery("");
+                    }}
+                    className="text-xs font-semibold text-neutral-700 hover:text-black py-1 px-1.5 cursor-pointer uppercase tracking-wider"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              </div>
+            )}
+
+            <div className="relative flex items-center justify-end transition-all duration-300 w-full max-w-[280px] lg:max-w-[340px]">
               {isSearchOpen ? (
-                <form onSubmit={handleSearchSubmit} className="w-full flex items-center relative">
+                /* Desktop Inline Search Form */
+                <form onSubmit={handleSearchSubmit} className="hidden sm:flex w-full items-center relative">
                   <input
                     type="text"
                     value={searchQuery}
@@ -221,33 +275,47 @@ export default function Header() {
                   </button>
                 </form>
               ) : (
-                <button
-                  onClick={() => setIsSearchOpen(true)}
-                  aria-label="Open Search"
-                  className={`w-full flex items-center justify-between px-4 py-2 rounded-xl border transition-all cursor-pointer ${
-                    isTransparent
-                      ? "text-white/90 border-white/30 hover:border-white bg-white/10 backdrop-blur-xs"
-                      : "text-neutral-600 border-neutral-200 hover:border-neutral-400 bg-neutral-50"
-                  }`}
-                >
-                  <span className="text-xs font-normal tracking-wide">Search drops...</span>
-                  <Search className="h-4 w-4 stroke-[1.8] shrink-0 ml-2" />
-                </button>
+                <>
+                  {/* Mobile Search Icon Button */}
+                  <button
+                    onClick={() => setIsSearchOpen(true)}
+                    aria-label="Open Search"
+                    className={`sm:hidden p-2 hover:opacity-75 transition-opacity cursor-pointer ${
+                      isTransparent ? "text-white" : "text-neutral-900"
+                    }`}
+                  >
+                    <Search className="h-6 w-6 stroke-[1.8]" />
+                  </button>
+
+                  {/* Tablet/Desktop Search Pill Button */}
+                  <button
+                    onClick={() => setIsSearchOpen(true)}
+                    aria-label="Open Search"
+                    className={`hidden sm:flex w-full items-center justify-between px-4 py-2 rounded-xl border transition-all cursor-pointer ${
+                      isTransparent
+                        ? "text-white/90 border-white/30 hover:border-white bg-white/10 backdrop-blur-xs"
+                        : "text-neutral-600 border-neutral-200 hover:border-neutral-400 bg-neutral-50"
+                    }`}
+                  >
+                    <span className="text-xs font-normal tracking-wide">Search drops...</span>
+                    <Search className="h-4 w-4 stroke-[1.8] shrink-0 ml-2" />
+                  </button>
+                </>
               )}
 
-              {/* ================= SEARCH SUGGESTIONS POPUP ================= */}
+              {/* ================= SEARCH SUGGESTIONS POPUP (Fully Mobile Responsive) ================= */}
               {isSearchOpen && searchQuery.trim().length > 0 && (
-                <div className="absolute right-0 top-full mt-3 w-[320px] sm:w-[380px] max-w-[calc(100vw-2rem)] bg-white text-neutral-900 rounded-2xl border border-neutral-200 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 font-helvetica">
+                <div className="fixed top-16 left-3 right-3 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:mt-3 w-auto sm:w-[380px] max-w-[calc(100vw-1.5rem)] bg-white text-neutral-900 rounded-2xl border border-neutral-200 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 font-helvetica">
                   
                   {/* Dropdown Header */}
                   <div className="px-4 py-2.5 border-b border-neutral-100 flex items-center justify-between text-[11px] text-neutral-400 font-semibold uppercase tracking-wider bg-neutral-50/70">
                     <span>Suggested Items ({matchingProducts.length})</span>
-                    <span className="text-[10px] font-normal lowercase text-neutral-400">press enter to search</span>
+                    <span className="text-[10px] font-normal lowercase text-neutral-400 hidden sm:inline">press enter to search</span>
                   </div>
 
                   {/* Suggestions List */}
                   {suggestedProducts.length > 0 ? (
-                    <div className="divide-y divide-neutral-100 max-h-[340px] overflow-y-auto">
+                    <div className="divide-y divide-neutral-100 max-h-[60vh] sm:max-h-[340px] overflow-y-auto">
                       {suggestedProducts.map((item) => (
                         <div
                           key={item.id}
@@ -316,103 +384,48 @@ export default function Header() {
         </div>
       </header>
 
-      {/* ================= MOBILE DRAWER ================= */}
+      {/* ================= MOBILE DRAWER (Minimalist Sidebar) ================= */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-100 bg-white flex flex-col px-6 py-6 font-helvetica md:hidden animate-in fade-in duration-200 overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <Link href="/" onClick={() => setIsMenuOpen(false)}>
-              <Image
-                src="/black-logo.png"
-                alt="Grail Society"
-                width={120}
-                height={60}
-                className="h-10 w-auto object-contain"
-              />
-            </Link>
+          {/* Top Close Button */}
+          <div className="flex items-center justify-end">
             <button
               onClick={() => setIsMenuOpen(false)}
               aria-label="Close Menu"
-              className="p-1 text-neutral-800 hover:text-black cursor-pointer"
+              className="p-1 -mr-1 text-neutral-800 hover:text-black transition-colors cursor-pointer"
             >
               <X className="h-7 w-7 stroke-[1.5]" />
             </button>
           </div>
 
-          {/* Mobile Search Input */}
-          <div className="mt-6">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSearchSubmit();
-              }}
-              className="relative flex items-center"
+          {/* Navigation Links (font-normal, positioned cleanly at top) */}
+          <nav className="flex flex-col space-y-6 mt-6 text-[28px] font-normal tracking-tight text-neutral-900">
+            <Link 
+              href="/" 
+              onClick={() => setIsMenuOpen(false)}
+              className="hover:opacity-70 transition-opacity"
             >
-              <Search className="absolute left-3.5 h-4 w-4 text-neutral-400 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search drops, brands, items..."
-                className="w-full pl-10 pr-4 py-2.5 bg-neutral-100 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-              />
-            </form>
-
-            {/* Mobile Search Suggestions */}
-            {searchQuery.trim().length > 0 && (
-              <div className="mt-3 bg-neutral-50 rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
-                <div className="px-3 py-2 text-[10px] font-bold text-neutral-400 uppercase tracking-wider border-b border-neutral-200/60">
-                  Suggestions ({matchingProducts.length})
-                </div>
-                {suggestedProducts.length > 0 ? (
-                  <div className="divide-y divide-neutral-200/50 max-h-60 overflow-y-auto">
-                    {suggestedProducts.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => handleSelectProduct(item.id)}
-                        className="flex items-center gap-3 p-2.5 hover:bg-neutral-100 transition-colors cursor-pointer"
-                      >
-                        <div className="relative w-10 h-10 rounded-md overflow-hidden bg-neutral-200 shrink-0">
-                          <Image
-                            src={item.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"}
-                            alt={item.title}
-                            fill
-                            unoptimized
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-neutral-900 truncate">{item.title}</p>
-                          <p className="text-[11px] text-neutral-500">{item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => handleSearchSubmit()}
-                      className="w-full py-2.5 text-center text-xs font-bold text-neutral-900 hover:bg-neutral-100 transition-colors border-t border-neutral-200/60"
-                    >
-                      View all {matchingProducts.length} results →
-                    </button>
-                  </div>
-                ) : (
-                  <p className="p-3 text-xs text-neutral-500 text-center">No matching products found</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Navigation Links */}
-          <nav className="flex flex-col space-y-6 mt-8 text-[28px] font-normal tracking-tight text-neutral-900">
-            <Link href="/" onClick={() => setIsMenuOpen(false)}>
               Home
             </Link>
-            <Link href="/new-arrivals" onClick={() => setIsMenuOpen(false)}>
+            <Link 
+              href="/new-arrivals" 
+              onClick={() => setIsMenuOpen(false)}
+              className="hover:opacity-70 transition-opacity"
+            >
               New Arrivals
             </Link>
-            <Link href="/shop" onClick={() => setIsMenuOpen(false)}>
+            <Link 
+              href="/shop" 
+              onClick={() => setIsMenuOpen(false)}
+              className="hover:opacity-70 transition-opacity"
+            >
               Shop All
             </Link>
-            <Link href="/collections" onClick={() => setIsMenuOpen(false)}>
+            <Link 
+              href="/collections" 
+              onClick={() => setIsMenuOpen(false)}
+              className="hover:opacity-70 transition-opacity"
+            >
               Collections
             </Link>
           </nav>

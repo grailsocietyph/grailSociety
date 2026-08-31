@@ -24,6 +24,8 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [copied, setCopied] = useState(false);
   const [directProduct, setDirectProduct] = useState<Product | null>(null);
   const [directLoading, setDirectLoading] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -68,10 +70,108 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const product = foundInContext || directProduct || products[0];
 
+  const productImages = product?.images && product.images.length > 0
+    ? product.images
+    : ["https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"];
+
   const suggestedProducts = products.length > 1
     ? products.filter((p) => p.id !== product?.id).slice(0, 4)
     : products.slice(0, 4);
 
+  // Lock body scroll and prevent touch scrolling when lightbox is open
+  useEffect(() => {
+    if (lightboxIndex !== null) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [lightboxIndex]);
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowLeft") {
+        setLightboxIndex((prev) => (prev !== null ? (prev - 1 + productImages.length) % productImages.length : 0));
+      }
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((prev) => (prev !== null ? (prev + 1) % productImages.length : 0));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, productImages.length]);
+
+  const handleNextImage = () => {
+    setActiveImageIndex((prev) => (prev + 1) % productImages.length);
+  };
+
+  const handlePrevImage = () => {
+    setActiveImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
+  };
+
+  const onTouchStartHandler = (e: React.TouchEvent) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMoveHandler = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndHandler = () => {
+    if (!touchStartX || !touchEndX) return;
+    const distance = touchStartX - touchEndX;
+    if (distance > 45) {
+      // Swiped Left -> Next
+      setLightboxIndex((prev) => (prev !== null ? (prev + 1) % productImages.length : 0));
+    } else if (distance < -45) {
+      // Swiped Right -> Prev
+      setLightboxIndex((prev) => (prev !== null ? (prev - 1 + productImages.length) % productImages.length : 0));
+    }
+    setTouchStartX(null);
+    setTouchEndX(null);
+  };
+
+  const safeLightboxIndex = lightboxIndex !== null
+    ? Math.max(0, Math.min(lightboxIndex, productImages.length - 1))
+    : 0;
+
+  // Format measurements for clipboard & view
+  const formattedMeasurements = product?.measurementsData?.notes
+    ? product.measurementsData.notes
+    : [
+        product?.measurementsData?.length ? `Length: ${product.measurementsData.length}` : "",
+        product?.measurementsData?.width ? `Width: ${product.measurementsData.width}` : "",
+        product?.measurementsData?.waist ? `Waist: ${product.measurementsData.waist}` : "",
+        product?.measurementsData?.legOpening ? `Leg Opening: ${product.measurementsData.legOpening}` : "",
+      ].filter(Boolean).join(" | ") || "N/A";
+
+  const handleCopyOrderDetails = () => {
+    if (!product) return;
+    const mainImageUrl = productImages[0] || "";
+    const productUrl = typeof window !== "undefined" ? window.location.href : "";
+    
+    const orderText = `🛍️ ORDER INQUIRY - GRAIL SOCIETY\n\n` +
+      `• Item: ${product.title}\n` +
+      `• Price: ${product.priceFormatted}\n` +
+      `• Tag Size: ${product.tagSize || "N/A"}\n` +
+      `• Measurements: ${formattedMeasurements}\n` +
+      `• Condition: ${product.condition || "N/A"}\n\n` +
+      (productUrl ? `🔗 Product Link: ${productUrl}\n` : "") +
+      `🖼️ Image Link: ${mainImageUrl}`;
+
+    navigator.clipboard.writeText(orderText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    });
+  };
+
+  // Conditional early returns (guaranteed to be AFTER all hooks)
   if (!mounted || (contextLoading && !product) || (directLoading && !product)) {
     return (
       <main className="min-h-screen bg-white flex flex-col justify-between font-helvetica">
@@ -96,47 +196,6 @@ export default function ProductDetailPage({ params }: PageProps) {
       </main>
     );
   }
-
-  const productImages = product.images && product.images.length > 0
-    ? product.images
-    : ["https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"];
-
-  const handleNextImage = () => {
-    setActiveImageIndex((prev) => (prev + 1) % productImages.length);
-  };
-
-  const handlePrevImage = () => {
-    setActiveImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
-  };
-
-  // Format measurements for clipboard & view
-  const formattedMeasurements = product.measurementsData?.notes
-    ? product.measurementsData.notes
-    : [
-        product.measurementsData?.length ? `Length: ${product.measurementsData.length}` : "",
-        product.measurementsData?.width ? `Width: ${product.measurementsData.width}` : "",
-        product.measurementsData?.waist ? `Waist: ${product.measurementsData.waist}` : "",
-        product.measurementsData?.legOpening ? `Leg Opening: ${product.measurementsData.legOpening}` : "",
-      ].filter(Boolean).join(" | ") || "N/A";
-
-  const handleCopyOrderDetails = () => {
-    const mainImageUrl = productImages[0] || "";
-    const productUrl = typeof window !== "undefined" ? window.location.href : "";
-    
-    const orderText = `🛍️ ORDER INQUIRY - GRAIL SOCIETY\n\n` +
-      `• Item: ${product.title}\n` +
-      `• Price: ${product.priceFormatted}\n` +
-      `• Tag Size: ${product.tagSize || "N/A"}\n` +
-      `• Measurements: ${formattedMeasurements}\n` +
-      `• Condition: ${product.condition || "N/A"}\n\n` +
-      (productUrl ? `🔗 Product Link: ${productUrl}\n` : "") +
-      `🖼️ Image Link: ${mainImageUrl}`;
-
-    navigator.clipboard.writeText(orderText).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    });
-  };
 
   return (
     <main className="min-h-screen bg-white flex flex-col justify-between font-helvetica">
@@ -323,37 +382,86 @@ export default function ProductDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Fullscreen Lightbox Modal */}
+      {/* ================= FULLSCREEN LIGHTBOX MODAL (Mobile-Optimized & Crash-Proof) ================= */}
       {lightboxIndex !== null && (
-        <div className="fixed inset-0 z-100 bg-white flex items-center justify-between font-helvetica">
-          <div className="relative h-full flex-1 flex items-center justify-center p-6">
-            <div className="relative h-full w-full max-w-5xl">
-              <Image
-                src={productImages[lightboxIndex] || productImages[0]}
-                alt="Fullscreen view"
-                fill
-                unoptimized
-                className="object-contain object-center"
-              />
+        <div 
+          className="fixed inset-0 z-100 bg-black/95 backdrop-blur-md flex flex-col justify-between font-helvetica select-none animate-in fade-in duration-200"
+          onTouchStart={onTouchStartHandler}
+          onTouchMove={onTouchMoveHandler}
+          onTouchEnd={onTouchEndHandler}
+        >
+          {/* Top Bar: Counter + Close Button */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 z-20">
+            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-white text-xs tracking-wider font-medium">
+              {safeLightboxIndex + 1} / {productImages.length}
             </div>
+
             <button
               onClick={() => setLightboxIndex(null)}
-              className="absolute top-6 right-6 p-2 text-neutral-800 hover:text-black transition-colors cursor-pointer"
+              aria-label="Close Lightbox"
+              className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
             >
-              <X className="h-7 w-7" />
+              <X className="h-6 w-6" />
             </button>
           </div>
 
-          <div className="h-full w-24 border-l border-neutral-100 flex flex-col items-center py-6 overflow-y-auto space-y-3 shrink-0">
+          {/* Main Image Stage */}
+          <div className="relative flex-1 w-full flex items-center justify-center px-4 sm:px-12 py-2 overflow-hidden">
+            
+            {/* Prev Image Arrow */}
+            {productImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex((prev) => (prev !== null ? (prev - 1 + productImages.length) % productImages.length : 0));
+                }}
+                aria-label="Previous Image"
+                className="absolute left-3 sm:left-6 z-20 p-3 bg-black/40 hover:bg-black/80 text-white rounded-full transition-all cursor-pointer backdrop-blur-xs"
+              >
+                <ChevronLeft className="h-6 w-6 stroke-2" />
+              </button>
+            )}
+
+            {/* Current Fullscreen Image */}
+            <div className="relative w-full h-full max-w-5xl max-h-[75vh] sm:max-h-[82vh] flex items-center justify-center">
+              <Image
+                src={productImages[safeLightboxIndex] || productImages[0]}
+                alt={`Photo ${safeLightboxIndex + 1}`}
+                fill
+                unoptimized
+                priority
+                className="object-contain object-center"
+              />
+            </div>
+
+            {/* Next Image Arrow */}
+            {productImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex((prev) => (prev !== null ? (prev + 1) % productImages.length : 0));
+                }}
+                aria-label="Next Image"
+                className="absolute right-3 sm:right-6 z-20 p-3 bg-black/40 hover:bg-black/80 text-white rounded-full transition-all cursor-pointer backdrop-blur-xs"
+              >
+                <ChevronRight className="h-6 w-6 stroke-2" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails Strip */}
+          <div className="px-4 py-4 sm:py-5 flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto z-20 max-w-full">
             {productImages.map((img, idx) => (
               <button
                 key={idx}
                 onClick={() => setLightboxIndex(idx)}
-                className={`relative h-16 w-16 bg-neutral-100 overflow-hidden rounded-none border-2 transition-all cursor-pointer ${
-                  lightboxIndex === idx ? "border-black" : "border-transparent opacity-60 hover:opacity-100"
+                className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-md overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                  safeLightboxIndex === idx
+                    ? "border-white scale-105 opacity-100"
+                    : "border-transparent opacity-40 hover:opacity-80"
                 }`}
               >
-                <Image src={img} alt="Thumb" fill unoptimized className="object-cover" />
+                <Image src={img} alt={`Thumb ${idx + 1}`} fill unoptimized className="object-cover" />
               </button>
             ))}
           </div>

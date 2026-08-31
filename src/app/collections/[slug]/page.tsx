@@ -103,7 +103,8 @@ export default function CollectionDetailPage({ params }: PageProps) {
       <div>
         <Header />
 
-        <section className="mx-auto max-w-360 px-4 sm:px-8 pt-24 sm:pt-32 pb-16">
+        {/* Top padding offset with generous breathing room */}
+        <section className="mx-auto max-w-360 px-4 sm:px-8 pt-32 sm:pt-36 lg:pt-40 pb-16">
           <h1 className="text-4xl sm:text-5xl font-black text-neutral-900 tracking-tight mb-8">
             {collectionTitle}
           </h1>
@@ -114,27 +115,39 @@ export default function CollectionDetailPage({ params }: PageProps) {
               {filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}
             </span>
 
-            <div className="flex items-center space-x-6">
+            {/* Right: Filter & Sort Button + Segmented Grid toggle */}
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
               <button 
                 onClick={() => setIsFilterSidebarOpen(true)}
-                className="flex items-center space-x-2 text-neutral-900 hover:text-black transition-colors focus:outline-none cursor-pointer font-medium text-sm bg-neutral-100 hover:bg-neutral-200 px-4 py-2 rounded-xl"
+                className="flex items-center space-x-2 text-neutral-900 hover:text-black transition-colors focus:outline-none cursor-pointer font-medium text-xs sm:text-sm bg-neutral-100 hover:bg-neutral-200 px-3 sm:px-4 py-2 rounded-xl"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 <span>Filter & Sort</span>
               </button>
 
-              <div className="hidden sm:flex items-center space-x-2 text-neutral-400">
+              {/* Segmented Grid Toggle (Always Visible on Mobile & Desktop) */}
+              <div className="flex items-center bg-neutral-100 p-1 rounded-xl shrink-0">
                 <button 
                   onClick={() => setIsDenseGrid(false)}
-                  aria-label="Standard Grid View"
-                  className={`p-1 transition-colors cursor-pointer ${!isDenseGrid ? "text-black" : "hover:text-black"}`}
+                  aria-label="Standard Grid View (2 items on mobile)"
+                  title="Standard View (2-col on mobile)"
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                    !isDenseGrid 
+                      ? "bg-white text-black shadow-xs" 
+                      : "text-neutral-400 hover:text-neutral-700"
+                  }`}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
                 <button 
                   onClick={() => setIsDenseGrid(true)}
-                  aria-label="Dense Grid View"
-                  className={`p-1 transition-colors cursor-pointer ${isDenseGrid ? "text-black" : "hover:text-black"}`}
+                  aria-label="Dense Grid View (3 items on mobile)"
+                  title="Minimize / Dense View (3-col on mobile)"
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                    isDenseGrid 
+                      ? "bg-white text-black shadow-xs" 
+                      : "text-neutral-400 hover:text-neutral-700"
+                  }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
@@ -142,12 +155,12 @@ export default function CollectionDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Product Grid */}
+          {/* Product Grid (Default 2 items on mobile, 3 items dense) */}
           {filteredProducts.length > 0 ? (
-            <div className={`grid gap-x-4 gap-y-10 ${
+            <div className={`grid gap-x-3.5 sm:gap-x-4 gap-y-6 sm:gap-y-10 ${
               isDenseGrid 
                 ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8" 
-                : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                : "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
             }`}>
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
