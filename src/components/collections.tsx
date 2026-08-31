@@ -48,7 +48,7 @@ export default function Collections() {
                 alt={item.title}
                 fill
                 sizes="(max-width: 768px) 50vw, 33vw"
-                className="object-contain object-center p-2 transition-transform duration-500 ease-out group-hover:scale-105"
+                className="object-contain object-center p-2 transition-transform duration-200 ease-out group-hover:scale-105"
               />
             </div>
           </Link>

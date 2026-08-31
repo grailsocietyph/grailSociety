@@ -59,9 +59,9 @@ export default function NewArrivals() {
 }
 
 function ProductCard({ product, isHero = false }: { product: Product; isHero?: boolean }) {
-  const [isHovered, setIsHovered] = useState(false);
   const primaryImage = product.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9";
-  const secondaryImage = product.images?.[1] || primaryImage;
+  const hasSecondary = product.images && product.images.length > 1;
+  const secondaryImage = hasSecondary ? product.images[1] : null;
 
   return (
     <Link href={`/products/${product.id}`} className="w-full h-full flex flex-col justify-between group/card cursor-pointer">
@@ -69,20 +69,33 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
         className={`relative w-full overflow-hidden bg-[#f6f6f6] rounded-none mb-2 ${
           isHero ? "h-[360px] sm:h-[420px] md:h-[calc(100%-3rem)] min-h-[380px]" : "aspect-square"
         }`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Primary Image */}
         <Image
-          src={isHovered ? secondaryImage : primaryImage}
+          src={primaryImage}
           alt={product.title}
           fill
           unoptimized
           sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover object-center transition-transform duration-500 group-hover/card:scale-105"
+          className={`object-cover object-center transition-all duration-200 ease-out group-hover/card:scale-105 ${
+            hasSecondary ? "group-hover/card:opacity-0" : ""
+          }`}
         />
 
+        {/* Secondary Image (Preloaded & Fades in instantly on hover) */}
+        {hasSecondary && secondaryImage && (
+          <Image
+            src={secondaryImage}
+            alt={`${product.title} alternate view`}
+            fill
+            unoptimized
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover object-center opacity-0 transition-all duration-200 ease-out group-hover/card:opacity-100 group-hover/card:scale-105"
+          />
+        )}
+
         {product.isSoldOut && (
-          <span className="absolute top-2 right-2 rounded-full bg-neutral-200/90 px-2.5 py-1 text-[10px] font-normal text-neutral-800 backdrop-blur-xs">
+          <span className="absolute top-2 right-2 rounded-full bg-neutral-200/90 px-2.5 py-1 text-[10px] font-normal text-neutral-800 backdrop-blur-xs z-10">
             Sold out
           </span>
         )}

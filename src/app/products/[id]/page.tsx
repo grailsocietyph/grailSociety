@@ -365,8 +365,20 @@ export default function ProductDetailPage({ params }: PageProps) {
                         fill
                         unoptimized
                         sizes="(max-width: 640px) 50vw, 25vw"
-                        className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                        className={`object-cover object-center transition-all duration-200 ease-out group-hover:scale-105 ${
+                          item.images && item.images.length > 1 ? "group-hover:opacity-0" : ""
+                        }`}
                       />
+                      {item.images && item.images.length > 1 && (
+                        <Image
+                          src={item.images[1]}
+                          alt={`${item.title} alternate view`}
+                          fill
+                          unoptimized
+                          sizes="(max-width: 640px) 50vw, 25vw"
+                          className="object-cover object-center opacity-0 transition-all duration-200 ease-out group-hover:opacity-100 group-hover:scale-105"
+                        />
+                      )}
                     </div>
                     <h3 className="text-xs sm:text-sm font-normal text-neutral-800 line-clamp-2 leading-tight">
                       {item.title}

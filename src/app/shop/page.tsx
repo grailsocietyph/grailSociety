@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -12,7 +12,9 @@ import {
   Grid3X3,
   Check,
   SlidersHorizontal,
-  X
+  X,
+  ArrowLeft,
+  ArrowRight
 } from "lucide-react";
 
 type SortOption = 
@@ -332,37 +334,122 @@ export default function ShopPage() {
 
 function ProductCard({ product }: { product: Product }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const primaryImage = product.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9";
-  const secondaryImage = product.images?.[1] || primaryImage;
+  const images = product.images && product.images.length > 0 
+    ? product.images 
+    : ["https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"];
+  const hasMultiple = images.length > 1;
+
+  const showControls = () => {
+    setIsInteracting(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setIsInteracting(false);
+    }, 2000);
+  };
+
+  const handlePrev = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showControls();
+    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNext = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showControls();
+    setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+    showControls();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || !hasMultiple) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchStartX - touchEndX;
+
+    if (Math.abs(diffX) > 30) {
+      showControls();
+      if (diffX > 0) {
+        setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+      } else {
+        setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+      }
+    }
+    setTouchStartX(null);
+  };
 
   return (
     <Link 
       href={`/products/${product.id}`} 
       className="group/card flex flex-col cursor-pointer"
     >
-      <div
-        className="relative aspect-square w-full overflow-hidden bg-neutral-100 rounded-none mb-3"
-        onMouseEnter={() => {
-          if (product.images && product.images.length > 1) {
-            setCurrentImageIndex(1);
-          }
-        }}
-        onMouseLeave={() => {
-          setCurrentImageIndex(0);
-        }}
+      <div 
+        className="relative aspect-square w-full overflow-hidden bg-neutral-100 rounded-none mb-3 select-none"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <Image
-          src={currentImageIndex === 1 ? secondaryImage : primaryImage}
+          src={images[currentImageIndex]}
           alt={product.title}
           fill
           unoptimized
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover object-center transition-transform duration-500 group-hover/card:scale-105"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-cover object-center transition-transform duration-200 ease-out group-hover/card:scale-105"
         />
 
+        {/* Left / Right Slide Preview Arrows for multiple images (revealed only when user is in it) */}
+        {hasMultiple && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous image"
+              onClick={handlePrev}
+              className={`absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition-all duration-200 p-1 hover:scale-110 active:scale-90 cursor-pointer ${
+                isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
+              }`}
+            >
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Next image"
+              onClick={handleNext}
+              className={`absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition-all duration-200 p-1 hover:scale-110 active:scale-90 cursor-pointer ${
+                isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
+              }`}
+            >
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
+            </button>
+
+            {/* Subtle pagination dots */}
+            <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-1 transition-opacity duration-200 ${
+              isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
+            }`}>
+              {images.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`h-1.5 rounded-full transition-all duration-200 ${
+                    idx === currentImageIndex 
+                      ? "w-3 bg-white drop-shadow-md" 
+                      : "w-1.5 bg-white/60 drop-shadow-xs"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         {product.isSoldOut && (
-          <span className="absolute top-2 right-2 rounded-full bg-neutral-200/90 px-2.5 py-1 text-[10px] font-normal text-neutral-800 backdrop-blur-xs">
+          <span className="absolute top-2 right-2 rounded-full bg-neutral-200/90 px-2.5 py-1 text-[10px] font-normal text-neutral-800 backdrop-blur-xs z-10">
             Sold out
           </span>
         )}
