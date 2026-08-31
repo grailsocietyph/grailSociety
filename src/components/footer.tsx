@@ -28,9 +28,9 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-white font-helvetica text-xs text-neutral-500">
-      <div className="grid grid-cols-3 items-center h-16 sm:h-20 px-4 sm:px-8 max-w-360 mx-auto">
+      <div className="flex items-center justify-between sm:grid sm:grid-cols-3 h-16 sm:h-20 px-4 sm:px-8 max-w-360 mx-auto">
         {/* Left: Copyright */}
-        <div className="flex items-center justify-start text-[11px] sm:text-xs text-neutral-500 whitespace-nowrap">
+        <div className="flex items-center justify-start text-[10.5px] sm:text-xs text-neutral-500 whitespace-nowrap shrink-0 sm:shrink">
           © 2026 Grail Society
         </div>
 
@@ -43,7 +43,7 @@ export default function Footer() {
         >
           <button
             onClick={() => setIsOpen((prev) => !prev)}
-            className="text-[11px] sm:text-xs text-neutral-600 hover:text-black transition-colors focus:outline-none cursor-pointer text-center whitespace-nowrap"
+            className="text-[11px] sm:text-xs text-neutral-600 hover:text-black transition-colors focus:outline-none cursor-pointer text-center whitespace-nowrap px-1"
           >
             <span>Terms and Policies</span>
           </button>
@@ -77,13 +77,13 @@ export default function Footer() {
         </div>
 
         {/* Right: Back to Top Button */}
-        <div className="flex items-center justify-end text-neutral-800">
+        <div className="flex items-center justify-end text-neutral-800 shrink-0 sm:shrink">
           <button
             onClick={scrollToTop}
             aria-label="Back to top"
             className="flex items-center space-x-1 text-neutral-600 hover:text-black transition-colors focus:outline-none cursor-pointer"
           >
-            <span className="text-[11px] font-normal uppercase tracking-wider">Top</span>
+            <span className="text-[10.5px] sm:text-xs font-normal uppercase tracking-wider">Top</span>
             <ArrowUp className="h-3.5 w-3.5 stroke-[1.8]" />
           </button>
         </div>
