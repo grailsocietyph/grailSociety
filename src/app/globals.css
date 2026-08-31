@@ -31,6 +31,7 @@ body {
   0% {
     transform: translateX(0%);
   }
+
   100% {
     transform: translateX(-50%);
   }
@@ -40,7 +41,7 @@ body {
   display: flex;
   width: max-content;
   will-change: transform;
-  animation: marquee 40s linear infinite;
+  animation: marquee 120s linear infinite;
 }
 
 .animate-marquee:hover {
