@@ -8,20 +8,17 @@ import { useProducts, Product } from "@/context/ProductContext";
 export default function NewArrivals() {
   const { products } = useProducts();
 
-  // Filter published products marked as new arrivals, or fallback to any published products
+  // Filter published products strictly marked as new arrivals
   const publishedNewArrivals = products.filter(
     (p) => p.status === "published" && p.isNewArrival
   );
-  const displayProducts = publishedNewArrivals.length > 0
-    ? publishedNewArrivals
-    : products.filter((p) => p.status === "published");
 
-  if (displayProducts.length === 0) {
+  if (publishedNewArrivals.length === 0) {
     return null;
   }
 
-  const heroProduct = displayProducts[0];
-  const gridProducts = displayProducts.slice(1, 5);
+  const heroProduct = publishedNewArrivals[0];
+  const gridProducts = publishedNewArrivals.slice(1, 5);
 
   return (
     <section className="mx-auto max-w-360 px-4 sm:px-8 pt-12 sm:pt-8 pb-16 font-helvetica">

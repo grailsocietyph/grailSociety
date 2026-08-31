@@ -99,8 +99,9 @@ export default function AdminPage() {
   const [notesVal, setNotesVal] = useState("");
 
   const [condition, setCondition] = useState("");
+  const [issue, setIssue] = useState("");
   const [images, setImages] = useState<string[]>([]);
-  const [isNewArrival, setIsNewArrival] = useState(true);
+  const [isNewArrival, setIsNewArrival] = useState(false);
   const [isSoldOut, setIsSoldOut] = useState(false);
 
   // Drag and drop state for images
@@ -140,8 +141,9 @@ export default function AdminPage() {
     setLegOpeningVal("");
     setNotesVal("");
     setCondition("");
+    setIssue("");
     setImages([]);
-    setIsNewArrival(true);
+    setIsNewArrival(false);
     setIsSoldOut(false);
     setUploadError(null);
     setErrors({});
@@ -163,6 +165,7 @@ export default function AdminPage() {
     setLegOpeningVal(item.measurementsData?.legOpening || "");
     setNotesVal(item.measurementsData?.notes || "");
     setCondition(item.condition || "");
+    setIssue(item.issue || item.measurementsData?.issue || "");
     setImages(item.images || []);
     setIsNewArrival(!!item.isNewArrival);
     setIsSoldOut(!!item.isSoldOut);
@@ -252,22 +255,25 @@ export default function AdminPage() {
     setUploadingCount(filesToProcess.length);
 
     try {
-      const formData = new FormData();
-      filesToProcess.forEach((file) => {
-        formData.append("files", file);
+      // Upload each file individually in parallel so request payload limits are never exceeded
+      const uploadPromises = filesToProcess.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || (!data.url && !data.urls)) {
+          throw new Error(data.error || `Failed to upload "${file.name}"`);
+        }
+        return (data.url || data.urls?.[0]) as string;
       });
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.urls) {
-        throw new Error(data.error || "Failed to upload images.");
-      }
-
-      setImages((prev) => [...prev, ...data.urls].slice(0, 9));
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages((prev) => [...prev, ...uploadedUrls.filter(Boolean)].slice(0, 9));
       if (errors.images) {
         setErrors((prev) => ({ ...prev, images: "" }));
       }
@@ -376,7 +382,7 @@ export default function AdminPage() {
       const num = parseFloat(priceNum) || 0;
       const priceFormatted = `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
-      let measurementsData = {};
+      let measurementsData: Record<string, string | undefined> = {};
       if (["bags", "accessories"].includes(collectionSlug)) {
         measurementsData = { notes: notesVal.trim() };
       } else if (collectionSlug === "shoes") {
@@ -385,6 +391,10 @@ export default function AdminPage() {
         measurementsData = { waist: waistVal.trim(), length: lengthVal.trim(), legOpening: legOpeningVal.trim() };
       } else {
         measurementsData = { length: lengthVal.trim(), width: widthVal.trim() };
+      }
+
+      if (issue.trim()) {
+        measurementsData.issue = issue.trim();
       }
 
       const finalTagSize = ["bags", "accessories"].includes(collectionSlug) ? "N/A" : tagSize;
@@ -397,6 +407,7 @@ export default function AdminPage() {
         tagSize: finalTagSize,
         measurementsData,
         condition: condition.trim(),
+        issue: issue.trim() || undefined,
         images,
         isNewArrival,
         status: targetStatus,
@@ -480,11 +491,11 @@ export default function AdminPage() {
   const liveFormattedMeasurements = notesVal.trim()
     ? notesVal.trim()
     : [
-        lengthVal.trim() ? `Length: ${lengthVal.trim()}` : "",
-        widthVal.trim() ? `Width: ${widthVal.trim()}` : "",
-        waistVal.trim() ? `Waist: ${waistVal.trim()}` : "",
-        legOpeningVal.trim() ? `Leg Opening: ${legOpeningVal.trim()}` : "",
-      ].filter(Boolean).join(" | ") || "N/A";
+      lengthVal.trim() ? `Length: ${lengthVal.trim()}` : "",
+      widthVal.trim() ? `Width: ${widthVal.trim()}` : "",
+      waistVal.trim() ? `Waist: ${waistVal.trim()}` : "",
+      legOpeningVal.trim() ? `Leg Opening: ${legOpeningVal.trim()}` : "",
+    ].filter(Boolean).join(" | ") || "N/A";
 
   return (
     <div className="min-h-screen bg-neutral-100 flex flex-col font-helvetica">
@@ -728,20 +739,18 @@ export default function AdminPage() {
                       <td className="py-3 px-4 font-semibold text-neutral-900">{item.priceFormatted}</td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full uppercase ${
-                            item.status === "published"
+                          className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full uppercase ${item.status === "published"
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-amber-50 text-amber-700"
-                          }`}
+                            }`}
                         >
                           {item.status}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-flex px-2 py-0.5 text-xs rounded-md ${
-                            item.isNewArrival ? "bg-black text-white" : "bg-neutral-100 text-neutral-500"
-                          }`}
+                          className={`inline-flex px-2 py-0.5 text-xs rounded-md ${item.isNewArrival ? "bg-black text-white" : "bg-neutral-100 text-neutral-500"
+                            }`}
                         >
                           {item.isNewArrival ? "Yes" : "No"}
                         </span>
@@ -824,11 +833,10 @@ export default function AdminPage() {
                           {item.collectionSlug} • Size {item.tagSize || "N/A"}
                         </span>
                         <span
-                          className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase ${
-                            item.status === "published"
+                          className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase ${item.status === "published"
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-amber-50 text-amber-700"
-                          }`}
+                            }`}
                         >
                           {item.status}
                         </span>
@@ -1074,11 +1082,10 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => setActiveModalTab("edit")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeModalTab === "edit"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeModalTab === "edit"
                         ? "bg-white text-black shadow-xs"
                         : "text-neutral-600 hover:text-black"
-                    }`}
+                      }`}
                   >
                     <Edit className="h-3.5 w-3.5" />
                     <span>Form Fields</span>
@@ -1089,11 +1096,10 @@ export default function AdminPage() {
                       setPreviewImageIndex(0);
                       setActiveModalTab("preview");
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeModalTab === "preview"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeModalTab === "preview"
                         ? "bg-white text-black shadow-xs"
                         : "text-neutral-600 hover:text-black"
-                    }`}
+                      }`}
                   >
                     <Eye className="h-3.5 w-3.5 text-neutral-800" />
                     <span>Live Preview</span>
@@ -1114,7 +1120,7 @@ export default function AdminPage() {
             {activeModalTab === "edit" ? (
               /* FORM TAB */
               <div className="px-5 sm:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8 overflow-y-auto flex-1">
-                
+
                 {/* Basic Information Section */}
                 <div className="space-y-4 bg-neutral-50/60 p-4 sm:p-5 rounded-2xl border border-neutral-200/80">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
@@ -1135,9 +1141,8 @@ export default function AdminPage() {
                         if (errors.title) setErrors((prev) => ({ ...prev, title: "" }));
                       }}
                       placeholder="e.g. Vintage Shirt"
-                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                        errors.title ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                      }`}
+                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.title ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                        }`}
                     />
                     {errors.title && (
                       <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1163,9 +1168,8 @@ export default function AdminPage() {
                           if (errors.priceNum) setErrors((prev) => ({ ...prev, priceNum: "" }));
                         }}
                         placeholder="e.g. 250"
-                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                          errors.priceNum ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                        }`}
+                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.priceNum ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                          }`}
                       />
                       {errors.priceNum && (
                         <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1247,9 +1251,8 @@ export default function AdminPage() {
                               if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
                             }}
                             placeholder="e.g. US 9 / EU 42 or N/A"
-                            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                              errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
+                            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                              }`}
                           />
                         ) : (
                           <select
@@ -1258,9 +1261,8 @@ export default function AdminPage() {
                               setTagSize(e.target.value);
                               if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
                             }}
-                            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${
-                              errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
+                            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                              }`}
                           >
                             <option value="N/A">N/A</option>
                             <option value="One Size">One Size</option>
@@ -1294,9 +1296,8 @@ export default function AdminPage() {
                           if (errors.condition) setErrors((prev) => ({ ...prev, condition: "" }));
                         }}
                         placeholder="e.g. 9/10 No Issue"
-                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                          errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                        }`}
+                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                          }`}
                       />
                       {errors.condition && (
                         <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1322,9 +1323,8 @@ export default function AdminPage() {
                             if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
                           }}
                           placeholder="e.g. 25"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                            errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
+                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
                         />
                         {errors.lengthVal && (
                           <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1345,9 +1345,8 @@ export default function AdminPage() {
                             if (errors.widthVal) setErrors((prev) => ({ ...prev, widthVal: "" }));
                           }}
                           placeholder="e.g. 33"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                            errors.widthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
+                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.widthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
                         />
                         {errors.widthVal && (
                           <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1374,9 +1373,8 @@ export default function AdminPage() {
                             if (errors.waistVal) setErrors((prev) => ({ ...prev, waistVal: "" }));
                           }}
                           placeholder="e.g. 32"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                            errors.waistVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
+                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.waistVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
                         />
                         {errors.waistVal && (
                           <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1397,9 +1395,8 @@ export default function AdminPage() {
                             if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
                           }}
                           placeholder="e.g. 40"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                            errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
+                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
                         />
                         {errors.lengthVal && (
                           <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1420,9 +1417,8 @@ export default function AdminPage() {
                             if (errors.legOpeningVal) setErrors((prev) => ({ ...prev, legOpeningVal: "" }));
                           }}
                           placeholder="e.g. 8"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${
-                            errors.legOpeningVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
+                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.legOpeningVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
                         />
                         {errors.legOpeningVal && (
                           <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1451,9 +1447,8 @@ export default function AdminPage() {
                             ? "e.g. Includes original box, minor scuff on left toe..."
                             : "e.g. Adjustable strap, brass hardware, inside pocket..."
                         }
-                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors resize-y min-h-[90px] ${
-                          errors.notesVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                        }`}
+                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors resize-y min-h-[90px] ${errors.notesVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                          }`}
                       />
                       {errors.notesVal && (
                         <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -1463,6 +1458,21 @@ export default function AdminPage() {
                       )}
                     </div>
                   )}
+
+                  {/* Optional Issue Field for All Categories */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5 flex items-center justify-between">
+                      <span>Issue</span>
+                      <span className="text-[11px] font-normal text-neutral-400 lowercase">optional</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={issue}
+                      onChange={(e) => setIssue(e.target.value)}
+                      placeholder="e.g. Small pinhole on lower hem, minor fading, none"
+                      className="w-full px-4 py-3 bg-white border border-neutral-300 focus:border-black rounded-xl text-sm focus:outline-none transition-colors"
+                    />
+                  </div>
                 </div>
 
                 {/* Product Photos Section */}
@@ -1483,9 +1493,8 @@ export default function AdminPage() {
                   )}
 
                   {/* Upload Button Box */}
-                  <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-5 sm:p-6 cursor-pointer transition-colors bg-white ${
-                    errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
-                  }`}>
+                  <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-5 sm:p-6 cursor-pointer transition-colors bg-white ${errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
+                    }`}>
                     {uploadingCount > 0 ? (
                       <div className="flex flex-col items-center gap-2 text-neutral-600">
                         <Loader2 className="h-6 w-6 animate-spin text-neutral-900" />
@@ -1559,7 +1568,7 @@ export default function AdminPage() {
               /* LIVE STOREFRONT DETAIL PAGE PREVIEW TAB (1:1 Exact Match with Live Customer View) */
               <div className="px-5 sm:px-8 py-6 space-y-6 overflow-y-auto flex-1 bg-white font-helvetica">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start pt-2">
-                  
+
                   {/* Left Section: Vertical Thumbnails + Main Image Viewer */}
                   <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
                     {/* Vertical Thumbnail List on the Left */}
@@ -1569,9 +1578,8 @@ export default function AdminPage() {
                           key={idx}
                           type="button"
                           onClick={() => setPreviewImageIndex(idx)}
-                          className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-neutral-100 overflow-hidden rounded-none border-2 transition-all cursor-pointer ${
-                            previewImageIndex === idx ? "border-black" : "border-transparent opacity-70 hover:opacity-100"
-                          }`}
+                          className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-neutral-100 overflow-hidden rounded-none border-2 transition-all cursor-pointer ${previewImageIndex === idx ? "border-black" : "border-transparent opacity-70 hover:opacity-100"
+                            }`}
                         >
                           <Image
                             src={img}
@@ -1629,10 +1637,10 @@ export default function AdminPage() {
                   <div className="lg:col-span-5 space-y-6 pt-2">
                     <div>
                       <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
-                        {title.trim() || "Vintage Shirt"}
+                        {title.trim() ? title.trim() : "—"}
                       </h1>
                       <p className="text-base sm:text-lg font-medium text-neutral-900 mt-2">
-                        {livePriceFormatted}
+                        {priceNum.trim() ? livePriceFormatted : "₱0.00"}
                       </p>
                     </div>
 
@@ -1643,15 +1651,17 @@ export default function AdminPage() {
                         onClick={() => {
                           const origin = typeof window !== "undefined" ? window.location.origin : "";
                           const productLink = editingId ? `${origin}/products/${editingId}` : `${origin}/products/...`;
+                          const issueText = issue.trim();
 
-                          const orderText = `🛍️ ORDER INQUIRY - GRAIL SOCIETY\n\n` +
-                            `• Item: ${title || "Untitled"}\n` +
+                          const orderText = `ORDER INQUIRY - GRAIL SOCIETY\n` +
+                            `• Item: ${title.trim() || "Untitled"}\n` +
                             `• Price: ${livePriceFormatted}\n` +
                             `• Tag Size: ${tagSize || "N/A"}\n` +
                             `• Measurements: ${liveFormattedMeasurements}\n` +
-                            `• Condition: ${condition || "N/A"}\n\n` +
-                            (origin ? `🔗 Product Link: ${productLink}\n` : "") +
-                            `🖼️ Image Link: ${images[0] || "No image uploaded"}`;
+                            `• Condition: ${condition.trim() || "N/A"}\n` +
+                            (issueText ? `• Issue: ${issueText}\n\n` : `\n`) +
+                            `Product Link: ${productLink}\n\n` +
+                            `Image Link: ${images[0] || "No image uploaded"}`;
 
                           if (navigator.clipboard) {
                             navigator.clipboard.writeText(orderText);
@@ -1687,8 +1697,13 @@ export default function AdminPage() {
                         <span className="font-semibold text-neutral-900">Measurements:</span> {liveFormattedMeasurements}
                       </p>
                       <p>
-                        <span className="font-semibold text-neutral-900">Condition:</span> {condition.trim() || "N/A"}
+                        <span className="font-semibold text-neutral-900">Condition:</span> {condition.trim() || "—"}
                       </p>
+                      {issue.trim() && (
+                        <p>
+                          <span className="font-semibold text-neutral-900">Issue:</span> {issue.trim()}
+                        </p>
+                      )}
                     </div>
 
                     {/* Highlighted How To Order Block (Exact Match with Live Storefront) */}
@@ -1707,10 +1722,10 @@ export default function AdminPage() {
                           <span className="font-bold">2.</span>
                           <span>
                             Paste it into our Facebook page chat:{" "}
-                            <a 
-                              href="https://www.facebook.com/people/Grail-Society/100075987014852/" 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
+                            <a
+                              href="https://www.facebook.com/people/Grail-Society/100075987014852/"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="font-bold underline text-black hover:text-neutral-600"
                             >
                               Grail Society

@@ -30,6 +30,7 @@ export interface DbProduct {
 
 export function mapDbProductToProduct(row: DbProduct): Product {
   const measurements = (row.measurements_data as Record<string, string | undefined>) || {};
+  const issue = (measurements.issue as string) || (row as any).issue || "";
   return {
     id: row.id,
     title: row.title,
@@ -37,8 +38,12 @@ export function mapDbProductToProduct(row: DbProduct): Product {
     priceFormatted: row.price_formatted,
     collectionSlug: row.collection_slug || "t-shirts",
     tagSize: row.tag_size || "M",
-    measurementsData: measurements,
+    measurementsData: {
+      ...measurements,
+      issue: issue || undefined,
+    },
     condition: row.condition || "",
+    issue: issue || undefined,
     images: Array.isArray(row.images) ? row.images : [],
     isNewArrival: Boolean(row.is_new_arrival),
     status: (row.status as "draft" | "published") || "draft",
@@ -56,7 +61,12 @@ export function mapProductToDbProduct(product: Partial<Product>): Partial<DbProd
   if (product.priceFormatted !== undefined) dbItem.price_formatted = product.priceFormatted;
   if (product.collectionSlug !== undefined) dbItem.collection_slug = product.collectionSlug;
   if (product.tagSize !== undefined) dbItem.tag_size = product.tagSize;
-  if (product.measurementsData !== undefined) dbItem.measurements_data = product.measurementsData;
+  if (product.measurementsData !== undefined || product.issue !== undefined) {
+    dbItem.measurements_data = {
+      ...(product.measurementsData || {}),
+      issue: product.issue || product.measurementsData?.issue || undefined,
+    };
+  }
   if (product.condition !== undefined) dbItem.condition = product.condition;
   if (product.images !== undefined) dbItem.images = product.images;
   if (product.isNewArrival !== undefined) dbItem.is_new_arrival = product.isNewArrival;

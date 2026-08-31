@@ -156,14 +156,16 @@ export default function ProductDetailPage({ params }: PageProps) {
     const mainImageUrl = productImages[0] || "";
     const productUrl = typeof window !== "undefined" ? window.location.href : "";
     
-    const orderText = `🛍️ ORDER INQUIRY - GRAIL SOCIETY\n\n` +
+    const issueText = (product.issue || product.measurementsData?.issue)?.trim();
+    const orderText = `ORDER INQUIRY - GRAIL SOCIETY\n` +
       `• Item: ${product.title}\n` +
       `• Price: ${product.priceFormatted}\n` +
       `• Tag Size: ${product.tagSize || "N/A"}\n` +
       `• Measurements: ${formattedMeasurements}\n` +
-      `• Condition: ${product.condition || "N/A"}\n\n` +
-      (productUrl ? `🔗 Product Link: ${productUrl}\n` : "") +
-      `🖼️ Image Link: ${mainImageUrl}`;
+      `• Condition: ${product.condition || "N/A"}\n` +
+      (issueText ? `• Issue: ${issueText}\n\n` : `\n`) +
+      `Product Link: ${productUrl}\n\n` +
+      `Image Link: ${mainImageUrl || "No image uploaded"}`;
 
     navigator.clipboard.writeText(orderText).then(() => {
       setCopied(true);
@@ -304,6 +306,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <p><span className="font-semibold text-neutral-900">Tag Size:</span> {product.tagSize || "N/A"}</p>
                 <p><span className="font-semibold text-neutral-900">Measurements:</span> {formattedMeasurements}</p>
                 <p><span className="font-semibold text-neutral-900">Condition:</span> {product.condition || "N/A"}</p>
+                {Boolean(product.issue || product.measurementsData?.issue) && (
+                  <p><span className="font-semibold text-neutral-900">Issue:</span> {product.issue || product.measurementsData?.issue}</p>
+                )}
               </div>
 
               {/* Highlighted How To Order Block */}

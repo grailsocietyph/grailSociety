@@ -16,8 +16,10 @@ export interface Product {
     waist?: string;
     legOpening?: string;
     notes?: string;
+    issue?: string;
   };
   condition: string;
+  issue?: string;
   images: string[];
   isNewArrival: boolean;
   status: "draft" | "published";
