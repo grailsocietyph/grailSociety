@@ -48,15 +48,27 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json();
-    const { key, url } = body;
+    const { key, url, keys, urls } = body;
 
-    const target = key || url;
-    if (!target) {
-      return NextResponse.json({ error: "Key or URL is required" }, { status: 400 });
+    const targets: string[] = [];
+    if (key) targets.push(key);
+    if (url) targets.push(url);
+    if (Array.isArray(keys)) targets.push(...keys);
+    if (Array.isArray(urls)) targets.push(...urls);
+
+    const validTargets = targets.filter(
+      (t) => typeof t === "string" && t.trim().length > 0
+    );
+
+    if (validTargets.length === 0) {
+      return NextResponse.json(
+        { error: "Key, url, keys, or urls are required" },
+        { status: 400 }
+      );
     }
 
-    await deleteFromR2(target);
-    return NextResponse.json({ success: true });
+    const deletedCount = await deleteFromR2(validTargets);
+    return NextResponse.json({ success: true, deletedCount });
   } catch (error: any) {
     console.error("Cloudflare R2 Delete Error:", error);
     return NextResponse.json(

@@ -42,6 +42,25 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
+async function deleteImagesFromR2(imageUrls: string[]) {
+  if (!imageUrls || imageUrls.length === 0) return;
+  // Target only product images stored in R2
+  const targets = imageUrls.filter(
+    (url) => typeof url === "string" && (url.includes("products/") || url.startsWith("products/"))
+  );
+  if (targets.length === 0) return;
+
+  try {
+    await fetch("/api/upload", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls: targets }),
+    });
+  } catch (err) {
+    console.warn("Failed to delete images from Cloudflare R2:", err);
+  }
+}
+
 export function ProductProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,6 +212,16 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         }
         throw new Error(updateError.message);
       }
+
+      // If images were updated, delete removed images from Cloudflare R2
+      if (previous?.images && updatedFields.images) {
+        const remaining = new Set(updatedFields.images);
+        const removed = previous.images.filter((img) => !remaining.has(img));
+        if (removed.length > 0) {
+          deleteImagesFromR2(removed);
+        }
+      }
+
       return true;
     } catch (err: any) {
       console.error("Failed to update product in Supabase:", err);
@@ -222,6 +251,12 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         }
         throw new Error(deleteError.message);
       }
+
+      // Cleanup image files from Cloudflare R2 storage
+      if (previous?.images && previous.images.length > 0) {
+        deleteImagesFromR2(previous.images);
+      }
+
       return true;
     } catch (err: any) {
       console.error("Failed to delete product from Supabase:", err);
@@ -277,6 +312,9 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   };
 
   const bulkDelete = async (ids: string[]): Promise<boolean> => {
+    const targets = products.filter((p) => ids.includes(p.id));
+    const previous = [...products];
+
     setProducts((prev) => prev.filter((p) => !ids.includes(p.id)));
 
     try {
@@ -287,11 +325,20 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
       if (bulkError) {
         console.error("Supabase bulk delete error:", bulkError);
+        setProducts(previous);
         return false;
       }
+
+      // Cleanup all image files across deleted products from Cloudflare R2 storage
+      const allImages = targets.flatMap((p) => p.images || []);
+      if (allImages.length > 0) {
+        deleteImagesFromR2(allImages);
+      }
+
       return true;
     } catch (err) {
       console.error("Failed bulk delete in Supabase:", err);
+      setProducts(previous);
       return false;
     }
   };

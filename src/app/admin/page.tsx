@@ -655,13 +655,13 @@ export default function AdminPage() {
             </div>
 
             {/* Action Buttons (Announcement, Bulk Actions, Add New Item) */}
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
               {selectionMode ? (
-                <div className="col-span-2 sm:col-span-1 flex items-center gap-2 bg-white p-2 sm:p-1.5 sm:px-3 rounded-2xl border border-neutral-300 shadow-2xs flex-wrap w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white p-1.5 px-2.5 sm:px-3 rounded-2xl border border-neutral-300 shadow-2xs whitespace-nowrap shrink-0">
                   <button
                     type="button"
                     onClick={toggleSelectAll}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold rounded-xl transition-colors cursor-pointer whitespace-nowrap shrink-0"
                     title={isAllSelected ? "Deselect all filtered items" : `Select all ${filteredProducts.length} items`}
                   >
                     {isAllSelected ? (
@@ -673,36 +673,43 @@ export default function AdminPage() {
                     )}
                     <span>{isAllSelected ? "Deselect All" : "Select All"}</span>
                   </button>
-                  <span className="text-xs font-bold text-neutral-800 whitespace-nowrap">
+
+                  <span className="text-xs font-bold text-neutral-700 whitespace-nowrap px-0.5 shrink-0">
                     {selectedIds.length} selected
                   </span>
+
+                  <span className="h-4 w-px bg-neutral-200 shrink-0 mx-0.5" />
+
                   <button
                     onClick={handleReleaseConfirm}
                     disabled={selectedIds.length === 0}
-                    className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap"
+                    className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap shrink-0 shadow-2xs"
                   >
                     Publish
                   </button>
                   <button
                     onClick={handleBulkDraft}
                     disabled={selectedIds.length === 0}
-                    className="px-2.5 sm:px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-xl hover:bg-amber-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap"
+                    className="px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-xl hover:bg-amber-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap shrink-0 shadow-2xs"
                   >
                     Draft
                   </button>
                   <button
                     onClick={handleBulkDelete}
                     disabled={selectedIds.length === 0}
-                    className="px-2.5 sm:px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap"
+                    className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap shrink-0 shadow-2xs"
                   >
                     Delete
                   </button>
+
+                  <span className="h-4 w-px bg-neutral-200 shrink-0 mx-0.5" />
+
                   <button
                     onClick={() => {
                       setSelectionMode(false);
                       setSelectedIds([]);
                     }}
-                    className="px-2 py-1 text-xs text-neutral-500 hover:text-black cursor-pointer ml-auto font-bold"
+                    className="px-2 py-1 text-xs text-neutral-500 hover:text-black cursor-pointer font-bold whitespace-nowrap shrink-0"
                   >
                     Cancel
                   </button>
@@ -711,14 +718,14 @@ export default function AdminPage() {
                 <>
                   <button
                     onClick={openAnnouncementModal}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap shrink-0"
                   >
                     <Megaphone className="h-4 w-4 text-neutral-800 shrink-0" />
                     <span>Announcement</span>
                   </button>
                   <button
                     onClick={() => setSelectionMode(true)}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap shrink-0"
                   >
                     <Package className="h-4 w-4 text-neutral-800 shrink-0" />
                     <span>Bulk Actions</span>
@@ -728,11 +735,9 @@ export default function AdminPage() {
 
               <button
                 onClick={openAddModal}
-                className={`${
-                  selectionMode ? "col-span-2" : "col-span-2 sm:col-span-1"
-                } flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-black text-white text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-sm whitespace-nowrap`}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-black text-white text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-sm whitespace-nowrap shrink-0"
               >
-                <Plus className="h-4 w-4 shrink-0" />
+                <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" />
                 <span>Add New Item</span>
               </button>
             </div>

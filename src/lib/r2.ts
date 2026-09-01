@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 
 const endpoint = process.env.CLOUDFLARE_R2_ENDPOINT || "";
 const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || "";
@@ -41,18 +46,67 @@ export async function uploadToR2(
   return { url, key };
 }
 
-export async function deleteFromR2(keyOrUrl: string): Promise<void> {
-  let key = keyOrUrl;
-  if (keyOrUrl.startsWith("http")) {
-    // Extract key from public URL
-    const parsed = new URL(keyOrUrl);
-    key = parsed.pathname.replace(/^\//, "");
+/**
+ * Safely extracts the S3/R2 object key from a full URL or relative path.
+ * Returns null if the item is not stored in the R2 bucket.
+ */
+export function extractR2Key(keyOrUrl: string): string | null {
+  if (!keyOrUrl || typeof keyOrUrl !== "string") return null;
+  const trimmed = keyOrUrl.trim();
+  if (!trimmed) return null;
+
+  try {
+    let pathname = trimmed;
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      const parsed = new URL(trimmed);
+      pathname = parsed.pathname;
+    }
+    const cleanKey = pathname.replace(/^\/+/, "");
+    // Ensure only products stored in R2 bucket are targeted
+    if (cleanKey.startsWith("products/")) {
+      return cleanKey;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Deletes one or multiple images from Cloudflare R2 bucket.
+ * Accepts a single string key/URL or an array of keys/URLs.
+ */
+export async function deleteFromR2(keysOrUrls: string | string[]): Promise<number> {
+  const list = Array.isArray(keysOrUrls) ? keysOrUrls : [keysOrUrls];
+  const keys = list
+    .map(extractR2Key)
+    .filter((k): k is string => Boolean(k && k.length > 0));
+
+  if (keys.length === 0) return 0;
+
+  if (keys.length === 1) {
+    const command = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: keys[0],
+    });
+    await r2Client.send(command);
+    return 1;
   }
 
-  const command = new DeleteObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-  });
+  // Delete in chunks of up to 1,000 keys per S3 DeleteObjects specification
+  let totalDeleted = 0;
+  for (let i = 0; i < keys.length; i += 1000) {
+    const chunk = keys.slice(i, i + 1000);
+    const command = new DeleteObjectsCommand({
+      Bucket: bucketName,
+      Delete: {
+        Objects: chunk.map((Key) => ({ Key })),
+        Quiet: true,
+      },
+    });
+    await r2Client.send(command);
+    totalDeleted += chunk.length;
+  }
 
-  await r2Client.send(command);
+  return totalDeleted;
 }
