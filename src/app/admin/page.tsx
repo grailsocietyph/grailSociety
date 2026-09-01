@@ -15,12 +15,16 @@ import {
   Upload,
   CheckSquare,
   Square,
+  MinusSquare,
+  Filter,
+  FilterX,
   Package,
   ExternalLink,
   LogOut,
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   GripVertical,
   Loader2,
   RefreshCw,
@@ -80,10 +84,13 @@ export default function AdminPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Search & Pagination states
+  // Search, Filter & Pagination states
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
+  const [newArrivalFilter, setNewArrivalFilter] = useState<"all" | "yes" | "no">("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // 8 items per page before advancing to page 2
+  const itemsPerPage = 10; // 10 items per page before advancing to page 2
 
   // Form states - initial clean empty values (no pre-filled static mock data)
   const [title, setTitle] = useState("");
@@ -463,20 +470,70 @@ export default function AdminPage() {
     }
   };
 
-  // Search Logic
+  // Search & Filter Logic
   const filteredProducts = products.filter((item) => {
+    // 1. Search Query filter
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
+    if (q) {
+      const matchesTitle = item.title.toLowerCase().includes(q);
+      const matchesCollection = (item.collectionSlug || "").toLowerCase().includes(q);
+      const matchesPrice =
+        (item.priceFormatted || "").toLowerCase().includes(q) || item.priceNum.toString().includes(q);
+      if (!matchesTitle && !matchesCollection && !matchesPrice) return false;
+    }
 
-    const matchesTitle = item.title.toLowerCase().includes(q);
-    const matchesCollection = (item.collectionSlug || "").toLowerCase().includes(q);
-    const matchesPrice =
-      (item.priceFormatted || "").toLowerCase().includes(q) || item.priceNum.toString().includes(q);
+    // 2. Category filter
+    if (categoryFilter !== "all") {
+      if ((item.collectionSlug || "").toLowerCase() !== categoryFilter.toLowerCase()) {
+        return false;
+      }
+    }
 
-    return matchesTitle || matchesCollection || matchesPrice;
+    // 3. Status filter
+    if (statusFilter !== "all") {
+      if (item.status !== statusFilter) {
+        return false;
+      }
+    }
+
+    // 4. New Arrival filter
+    if (newArrivalFilter !== "all") {
+      if (newArrivalFilter === "yes" && !item.isNewArrival) return false;
+      if (newArrivalFilter === "no" && item.isNewArrival) return false;
+    }
+
+    return true;
   });
 
-  // Pagination Logic (8 items per page)
+  const hasActiveFilters =
+    searchQuery !== "" ||
+    categoryFilter !== "all" ||
+    statusFilter !== "all" ||
+    newArrivalFilter !== "all";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setNewArrivalFilter("all");
+    setCurrentPage(1);
+  };
+
+  // Select All computed state & handlers
+  const allFilteredIds = filteredProducts.map((p) => p.id);
+  const isAllSelected =
+    allFilteredIds.length > 0 && allFilteredIds.every((id) => selectedIds.includes(id));
+  const isSomeSelected = selectedIds.length > 0 && !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(allFilteredIds);
+    }
+  };
+
+  // Pagination Logic (10 items per page)
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, filteredProducts.length);
@@ -577,85 +634,205 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Responsive Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6">
-          <div className="w-full sm:w-80">
-            <div className="relative w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="Search by title, category, price..."
-                className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-white border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
-              />
+        {/* Responsive Action & Filter Controls */}
+        <div className="flex flex-col gap-3 sm:gap-4 mb-6">
+          {/* Row 1: Search Bar on Left (max-w-[620px]), Action Buttons on Right */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+            <div className="w-full lg:max-w-[620px]">
+              <div className="relative w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search by title, category, price..."
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-white border border-neutral-300 rounded-2xl text-xs sm:text-sm font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-black transition-colors shadow-2xs"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons (Announcement, Bulk Actions, Add New Item) */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
+              {selectionMode ? (
+                <div className="col-span-2 sm:col-span-1 flex items-center gap-2 bg-white p-2 sm:p-1.5 sm:px-3 rounded-2xl border border-neutral-300 shadow-2xs flex-wrap w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                    title={isAllSelected ? "Deselect all filtered items" : `Select all ${filteredProducts.length} items`}
+                  >
+                    {isAllSelected ? (
+                      <CheckSquare className="h-3.5 w-3.5 text-black" />
+                    ) : isSomeSelected ? (
+                      <MinusSquare className="h-3.5 w-3.5 text-neutral-700" />
+                    ) : (
+                      <Square className="h-3.5 w-3.5 text-neutral-500" />
+                    )}
+                    <span>{isAllSelected ? "Deselect All" : "Select All"}</span>
+                  </button>
+                  <span className="text-xs font-bold text-neutral-800 whitespace-nowrap">
+                    {selectedIds.length} selected
+                  </span>
+                  <button
+                    onClick={handleReleaseConfirm}
+                    disabled={selectedIds.length === 0}
+                    className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    Publish
+                  </button>
+                  <button
+                    onClick={handleBulkDraft}
+                    disabled={selectedIds.length === 0}
+                    className="px-2.5 sm:px-3 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-xl hover:bg-amber-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    Draft
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={selectedIds.length === 0}
+                    className="px-2.5 sm:px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 disabled:opacity-40 cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedIds([]);
+                    }}
+                    className="px-2 py-1 text-xs text-neutral-500 hover:text-black cursor-pointer ml-auto font-bold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={openAnnouncementModal}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap"
+                  >
+                    <Megaphone className="h-4 w-4 text-neutral-800 shrink-0" />
+                    <span>Announcement</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectionMode(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap"
+                  >
+                    <Package className="h-4 w-4 text-neutral-800 shrink-0" />
+                    <span>Bulk Actions</span>
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={openAddModal}
+                className={`${
+                  selectionMode ? "col-span-2" : "col-span-2 sm:col-span-1"
+                } flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-black text-white text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-sm whitespace-nowrap`}
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span>Add New Item</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            {selectionMode ? (
-              <div className="flex items-center gap-2 bg-white p-1.5 px-3 rounded-xl border border-neutral-300 shadow-sm flex-wrap w-full sm:w-auto">
-                <span className="text-xs font-bold text-neutral-800">{selectedIds.length} selected</span>
-                <button
-                  onClick={handleReleaseConfirm}
-                  disabled={selectedIds.length === 0}
-                  className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-40 cursor-pointer transition-colors"
-                >
-                  Publish
-                </button>
-                <button
-                  onClick={handleBulkDraft}
-                  disabled={selectedIds.length === 0}
-                  className="px-2.5 sm:px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-40 cursor-pointer transition-colors"
-                >
-                  Draft
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={selectedIds.length === 0}
-                  className="px-2.5 sm:px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-40 cursor-pointer transition-colors"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectionMode(false);
-                    setSelectedIds([]);
+          {/* Row 2: 3 Filter Buttons (All in ONE Row on Mobile & Desktop) & Clear Filters Button (Aligned on Right) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+            {/* Left: 3 Filter Buttons in One Row (matching search bar max width on desktop) */}
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 w-full lg:max-w-[620px]">
+              {/* Category Filter Button */}
+              <div className="relative w-full min-w-0">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setCurrentPage(1);
                   }}
-                  className="px-2 py-1 text-xs text-neutral-500 hover:text-black cursor-pointer ml-auto"
+                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 capitalize truncate ${
+                    categoryFilter !== "all"
+                      ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                      : "bg-white border-neutral-300 text-neutral-900"
+                  }`}
                 >
-                  Cancel
+                  <option value="all" className="bg-white text-neutral-900 font-normal">All Categories</option>
+                  <option value="t-shirts" className="bg-white text-neutral-900 font-normal">T-Shirts</option>
+                  <option value="hoodies" className="bg-white text-neutral-900 font-normal">Hoodies</option>
+                  <option value="sweaters" className="bg-white text-neutral-900 font-normal">Sweaters</option>
+                  <option value="jackets" className="bg-white text-neutral-900 font-normal">Jackets</option>
+                  <option value="shorts" className="bg-white text-neutral-900 font-normal">Shorts</option>
+                  <option value="pants" className="bg-white text-neutral-900 font-normal">Pants</option>
+                  <option value="bags" className="bg-white text-neutral-900 font-normal">Bags</option>
+                  <option value="accessories" className="bg-white text-neutral-900 font-normal">Accessories</option>
+                  <option value="shoes" className="bg-white text-neutral-900 font-normal">Shoes</option>
+                </select>
+                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${
+                  categoryFilter !== "all" ? "text-white" : "text-neutral-500"
+                }`} />
+              </div>
+
+              {/* Status Filter Button */}
+              <div className="relative w-full min-w-0">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as "all" | "published" | "draft");
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 capitalize truncate ${
+                    statusFilter !== "all"
+                      ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                      : "bg-white border-neutral-300 text-neutral-900"
+                  }`}
+                >
+                  <option value="all" className="bg-white text-neutral-900 font-normal">All Statuses</option>
+                  <option value="published" className="bg-white text-neutral-900 font-normal">Published</option>
+                  <option value="draft" className="bg-white text-neutral-900 font-normal">Draft</option>
+                </select>
+                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${
+                  statusFilter !== "all" ? "text-white" : "text-neutral-500"
+                }`} />
+              </div>
+
+              {/* New Arrival Filter Button */}
+              <div className="relative w-full min-w-0">
+                <select
+                  value={newArrivalFilter}
+                  onChange={(e) => {
+                    setNewArrivalFilter(e.target.value as "all" | "yes" | "no");
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 truncate ${
+                    newArrivalFilter !== "all"
+                      ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                      : "bg-white border-neutral-300 text-neutral-900"
+                  }`}
+                >
+                  <option value="all" className="bg-white text-neutral-900 font-normal">All New Arrivals</option>
+                  <option value="yes" className="bg-white text-neutral-900 font-normal">New Arrivals Only</option>
+                  <option value="no" className="bg-white text-neutral-900 font-normal">Not New Arrival</option>
+                </select>
+                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${
+                  newArrivalFilter !== "all" ? "text-white" : "text-neutral-500"
+                }`} />
+              </div>
+            </div>
+
+            {/* Right: Clear Filters Button placed below Add New Item on the same horizontal level */}
+            {hasActiveFilters && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                  title="Clear all active filters"
+                >
+                  <FilterX className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
+                  <span>Clear filters</span>
                 </button>
               </div>
-            ) : (
-              <>
-                <button
-                  onClick={openAnnouncementModal}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-800 text-xs sm:text-sm font-medium rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs"
-                >
-                  <Megaphone className="h-4 w-4 text-neutral-700" />
-                  <span>Announcement</span>
-                </button>
-                <button
-                  onClick={() => setSelectionMode(true)}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-800 text-xs sm:text-sm font-medium rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs"
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Bulk Actions</span>
-                </button>
-              </>
             )}
-
-            <button
-              onClick={openAddModal}
-              className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-4 py-2.5 sm:py-3 bg-black text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-sm"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add New Item</span>
-            </button>
           </div>
         </div>
 
@@ -664,7 +841,7 @@ export default function AdminPage() {
           <div>
             {filteredProducts.length > 0 ? (
               <span>
-                Showing <strong className="text-neutral-800">{startIndex + 1}–{endIndex}</strong> of <strong className="text-neutral-800">{filteredProducts.length}</strong> items (8 per page)
+                Showing <strong className="text-neutral-800">{startIndex + 1}–{endIndex}</strong> of <strong className="text-neutral-800">{filteredProducts.length}</strong> items (10 per page)
               </span>
             ) : (
               <span>0 items found</span>
@@ -683,7 +860,26 @@ export default function AdminPage() {
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-neutral-50 border-b border-neutral-200 text-xs font-semibold uppercase text-neutral-500 select-none">
-                {selectionMode && <th className="py-3.5 px-4 w-10"></th>}
+                {selectionMode && (
+                  <th className="py-3.5 px-4 w-10">
+                    <div className="flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className="cursor-pointer flex items-center justify-center text-neutral-600 hover:text-black transition-colors"
+                        title={isAllSelected ? "Deselect all items" : "Select all items"}
+                      >
+                        {isAllSelected ? (
+                          <CheckSquare className="h-4 w-4 text-black" />
+                        ) : isSomeSelected ? (
+                          <MinusSquare className="h-4 w-4 text-neutral-700" />
+                        ) : (
+                          <Square className="h-4 w-4 text-neutral-400" />
+                        )}
+                      </button>
+                    </div>
+                  </th>
+                )}
                 <th className="py-3.5 px-4">Photo</th>
                 <th className="py-3.5 px-4">Title</th>
                 <th className="py-3.5 px-4">Category</th>
