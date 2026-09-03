@@ -128,7 +128,7 @@ export default function AdminPage() {
   const [legOpeningVal, setLegOpeningVal] = useState("");
   const [notesVal, setNotesVal] = useState("");
 
-  const [condition, setCondition] = useState("");
+  const [condition, setCondition] = useState("Excellent");
   const [issue, setIssue] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [isNewArrival, setIsNewArrival] = useState(false);
@@ -170,7 +170,7 @@ export default function AdminPage() {
     setWaistVal("");
     setLegOpeningVal("");
     setNotesVal("");
-    setCondition("");
+    setCondition("Excellent");
     setIssue("");
     setImages([]);
     setIsNewArrival(false);
@@ -194,7 +194,14 @@ export default function AdminPage() {
     setWaistVal(stripInch(item.measurementsData?.waist));
     setLegOpeningVal(stripInch(item.measurementsData?.legOpening));
     setNotesVal(item.measurementsData?.notes || "");
-    setCondition(item.condition || "");
+    const itemCond = item.condition?.trim() || "";
+    if (itemCond.toLowerCase() === "excellent") {
+      setCondition("Excellent");
+    } else if (itemCond.toLowerCase() === "good") {
+      setCondition("Good");
+    } else {
+      setCondition(itemCond || "Excellent");
+    }
     setIssue(item.issue || item.measurementsData?.issue || "");
     setImages(item.images || []);
     setIsNewArrival(!!item.isNewArrival);
@@ -1729,18 +1736,22 @@ export default function AdminPage() {
                     <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
                       Condition <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       tabIndex={10}
                       value={condition}
                       onChange={(e) => {
                         setCondition(e.target.value);
                         if (errors.condition) setErrors((prev) => ({ ...prev, condition: "" }));
                       }}
-                      placeholder="e.g. 9/10 No Issue"
-                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
                         }`}
-                    />
+                    >
+                      <option value="Excellent">Excellent</option>
+                      <option value="Good">Good</option>
+                      {condition && !["Excellent", "Good"].includes(condition) && (
+                        <option value={condition}>{condition}</option>
+                      )}
+                    </select>
                     {errors.condition && (
                       <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
