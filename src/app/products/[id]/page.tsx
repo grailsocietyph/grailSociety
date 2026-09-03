@@ -145,20 +145,49 @@ export default function ProductDetailPage({ params }: PageProps) {
     }
   }, [activeImageIndex]);
 
-  // Keyboard navigation for Lightbox
+  const touchStartXRef = useRef<number | null>(null);
+  const touchEndXRef = useRef<number | null>(null);
+
+  // Preload and pre-decode all product images in the background for 0ms instant transitions
   useEffect(() => {
-    if (lightboxIndex === null) return;
+    if (typeof window === "undefined" || !productImages || productImages.length <= 1) return;
+
+    productImages.forEach((src) => {
+      if (!src) return;
+      const img = new window.Image();
+      img.src = src;
+      if (img.decode) {
+        img.decode().catch(() => {
+          // Ignore decoding errors if any
+        });
+      }
+    });
+  }, [productImages]);
+
+  // Keyboard navigation for Storefront Viewer & Lightbox
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setLightboxIndex(null);
-      } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-        const nextIdx = Math.min(productImages.length - 1, activeScrollIndex + 1);
-        const el = document.getElementById(`lightbox-img-${nextIdx}`);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-        const prevIdx = Math.max(0, activeScrollIndex - 1);
-        const el = document.getElementById(`lightbox-img-${prevIdx}`);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const activeTag = (document.activeElement?.tagName || "").toLowerCase();
+      if (activeTag === "input" || activeTag === "textarea") return;
+
+      if (lightboxIndex !== null) {
+        if (e.key === "Escape") {
+          setLightboxIndex(null);
+        } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          const nextIdx = Math.min(productImages.length - 1, activeScrollIndex + 1);
+          const el = document.getElementById(`lightbox-img-${nextIdx}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          const prevIdx = Math.max(0, activeScrollIndex - 1);
+          const el = document.getElementById(`lightbox-img-${prevIdx}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } else {
+        if (e.key === "ArrowRight") {
+          handleNextImage();
+        } else if (e.key === "ArrowLeft") {
+          handlePrevImage();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -171,6 +200,30 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const handlePrevImage = () => {
     setActiveImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.targetTouches[0].clientX;
+    touchEndXRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
+    const distance = touchStartXRef.current - touchEndXRef.current;
+    const isLeftSwipe = distance > 45;
+    const isRightSwipe = distance < -45;
+
+    if (isLeftSwipe) {
+      handleNextImage();
+    } else if (isRightSwipe) {
+      handlePrevImage();
+    }
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
   };
 
   // Helper to format dimensions with inch unit if missing
@@ -282,32 +335,48 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Main Active Photo Viewer (4:3 Portrait Orientation) */}
               <div 
-                className="relative flex-1 aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-2xl cursor-zoom-in"
+                className="relative flex-1 aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-2xl cursor-zoom-in group select-none"
                 onClick={() => setLightboxIndex(activeImageIndex)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
-                <Image
-                  src={productImages[activeImageIndex] || productImages[0]}
-                  alt={product.title}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 45vw"
-                  className="object-cover object-center transition-transform duration-500"
-                />
+                {productImages.map((img, idx) => {
+                  const isActive = activeImageIndex === idx;
+                  return (
+                    <div
+                      key={`${img}-${idx}`}
+                      className={`absolute inset-0 transition-opacity duration-200 ease-out ${
+                        isActive ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${product.title} photo ${idx + 1}`}
+                        fill
+                        priority={idx === 0 || idx === 1}
+                        loading={idx < 3 ? "eager" : "lazy"}
+                        sizes="(max-width: 1024px) 100vw, 45vw"
+                        className="object-cover object-center"
+                      />
+                    </div>
+                  );
+                })}
 
                 {/* Bottom Right Circular Navigation Arrows */}
                 {productImages.length > 1 && (
-                  <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+                  <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
                       aria-label="Previous image"
-                      className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer"
+                      className="w-11 h-11 rounded-full bg-white/90 hover:bg-white text-neutral-900 shadow-md flex items-center justify-center transition-all duration-150 cursor-pointer active:scale-90 hover:scale-105 backdrop-blur-xs"
                     >
                       <ChevronLeft className="h-5 w-5 stroke-2" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
                       aria-label="Next image"
-                      className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer"
+                      className="w-11 h-11 rounded-full bg-white/90 hover:bg-white text-neutral-900 shadow-md flex items-center justify-center transition-all duration-150 cursor-pointer active:scale-90 hover:scale-105 backdrop-blur-xs"
                     >
                       <ChevronRight className="h-5 w-5 stroke-2" />
                     </button>
