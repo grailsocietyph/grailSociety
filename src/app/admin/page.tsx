@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useProducts, Product } from "@/context/ProductContext";
 import { useAdminAuth } from "@/context/AdminAuthContext";
@@ -40,8 +40,7 @@ import {
   Star,
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
-  ArrowDown,
+  Hash,
   ListOrdered,
   LayoutGrid,
   Grid3X3,
@@ -186,6 +185,9 @@ export default function AdminPage() {
   const [dragOverReorderIdx, setDragOverReorderIdx] = useState<number | null>(null);
   const [isSavingReorder, setIsSavingReorder] = useState(false);
   const [reorderSavedSuccess, setReorderSavedSuccess] = useState(false);
+  const [jumpToPosId, setJumpToPosId] = useState<string | null>(null);
+  const [jumpToPosValue, setJumpToPosValue] = useState<string>("");
+  const reorderContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll active thumbnail into view in Live Preview tab
   useEffect(() => {
@@ -278,6 +280,8 @@ export default function AdminPage() {
     setReorderSavedSuccess(false);
     setDraggedReorderIdx(null);
     setDragOverReorderIdx(null);
+    setJumpToPosId(null);
+    setJumpToPosValue("");
     setIsReorderModalOpen(true);
   };
 
@@ -300,6 +304,17 @@ export default function AdminPage() {
     e.dataTransfer.dropEffect = "move";
     if (dragOverReorderIdx !== index) {
       setDragOverReorderIdx(index);
+    }
+    // Auto-scroll when dragging near top or bottom edge of list
+    if (reorderContainerRef.current) {
+      const rect = reorderContainerRef.current.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+      const scrollThreshold = 55;
+      if (offsetY < scrollThreshold) {
+        reorderContainerRef.current.scrollTop -= 10;
+      } else if (rect.bottom - e.clientY < scrollThreshold) {
+        reorderContainerRef.current.scrollTop += 10;
+      }
     }
   };
 
@@ -325,6 +340,37 @@ export default function AdminPage() {
     const [moved] = updated.splice(currentIdx, 1);
     updated.unshift(moved);
     setReorderList(updated);
+    setJumpToPosId(null);
+  };
+
+  const handleMoveToBottom = (itemId: string) => {
+    const currentIdx = reorderList.findIndex((p) => p.id === itemId);
+    if (currentIdx < 0 || currentIdx === reorderList.length - 1) return;
+    const updated = [...reorderList];
+    const [moved] = updated.splice(currentIdx, 1);
+    updated.push(moved);
+    setReorderList(updated);
+    setJumpToPosId(null);
+  };
+
+  const handleMoveToPosition = (itemId: string, targetPos1Indexed: number) => {
+    const currentIdx = reorderList.findIndex((p) => p.id === itemId);
+    if (currentIdx < 0) return;
+    if (isNaN(targetPos1Indexed) || targetPos1Indexed < 1) return;
+
+    const clamped = Math.max(1, Math.min(reorderList.length, Math.floor(targetPos1Indexed)));
+    const targetIdx = clamped - 1;
+    if (targetIdx === currentIdx) {
+      setJumpToPosId(null);
+      return;
+    }
+
+    const updated = [...reorderList];
+    const [moved] = updated.splice(currentIdx, 1);
+    updated.splice(targetIdx, 0, moved);
+    setReorderList(updated);
+    setJumpToPosId(null);
+    setJumpToPosValue("");
   };
 
   const handleSaveReorder = async () => {
@@ -2528,7 +2574,7 @@ export default function AdminPage() {
       {/* Interactive Reorder Products Modal */}
       {isReorderModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-neutral-200 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-neutral-200 animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-50 shrink-0">
               <div className="flex items-center gap-3">
@@ -2540,7 +2586,7 @@ export default function AdminPage() {
                     Arrange Storefront Item Order
                   </h2>
                   <p className="text-xs text-neutral-500">
-                    Drag rows, type position numbers, or click &quot;Make #1 Hero&quot; to set the sequence.
+                    Click &quot;Move to #&quot; to change position number, or drag rows to reorder.
                   </p>
                 </div>
               </div>
@@ -2566,8 +2612,8 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Modal Body: Drag & Drop + Direct Editable Position List */}
-            <div className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-2">
+            {/* Modal Body: Drag & Drop + Direct Position Actions */}
+            <div ref={reorderContainerRef} className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-2">
               {reorderList
                 .map((item, originalIndex) => ({ item, originalIndex }))
                 .filter(({ item }) => {
@@ -2583,6 +2629,7 @@ export default function AdminPage() {
                   const isHero = originalIndex === 0;
                   const isBeingDragged = draggedReorderIdx === originalIndex;
                   const isTarget = dragOverReorderIdx === originalIndex;
+                  const isJumpOpen = jumpToPosId === item.id;
 
                   return (
                     <div
@@ -2606,7 +2653,7 @@ export default function AdminPage() {
                           : "bg-white hover:bg-neutral-50 border border-neutral-200/90"
                       }`}
                     >
-                      {/* Left: Drag Handle + Editable Position Input + Thumbnail + Info */}
+                      {/* Left: Drag Handle + Static Position Badge + Thumbnail + Info */}
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         {/* Drag Handle */}
                         <div
@@ -2616,9 +2663,9 @@ export default function AdminPage() {
                           <GripVertical className="h-4 w-4" />
                         </div>
 
-                        {/* Position Badge */}
+                        {/* Normal Static Position Badge */}
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 select-none ${
                             isHero
                               ? "bg-black text-amber-400 shadow-2xs"
                               : "bg-neutral-100 text-neutral-800"
@@ -2674,38 +2721,61 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      {/* Right: 1-Click "Make #1" + Up / Down Controls */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        {!isHero && (
+                      {/* Right: Quick Action Controls (Move to # only) */}
+                      {isJumpOpen ? (
+                        <div className="flex items-center gap-1.5 bg-neutral-900 text-white px-2.5 py-1.5 rounded-xl shadow-md animate-in fade-in zoom-in-95 duration-150 shrink-0">
+                          <span className="text-[11px] text-neutral-300 font-bold whitespace-nowrap">Jump to #</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={reorderList.length}
+                            value={jumpToPosValue}
+                            onChange={(e) => setJumpToPosValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleMoveToPosition(item.id, parseInt(jumpToPosValue, 10));
+                              } else if (e.key === "Escape") {
+                                setJumpToPosId(null);
+                              }
+                            }}
+                            placeholder={`1-${reorderList.length}`}
+                            autoFocus
+                            className="w-14 px-2 py-0.5 bg-neutral-800 text-white border border-neutral-600 rounded-lg text-xs font-bold text-center focus:outline-none focus:border-amber-400"
+                          />
                           <button
                             type="button"
-                            onClick={() => handleMoveToTop(item.id)}
-                            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-neutral-700 hover:text-black bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
-                            title="Instantly make this product the #1 Hero item"
+                            onClick={() => handleMoveToPosition(item.id, parseInt(jumpToPosValue, 10))}
+                            className="px-2.5 py-1 bg-amber-400 text-black text-[11px] font-black rounded-lg hover:bg-amber-300 cursor-pointer transition-colors"
                           >
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
-                            <span>Make #1</span>
+                            Go
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          disabled={originalIndex === 0}
-                          onClick={() => moveReorderItem(originalIndex, "up")}
-                          className="p-1.5 sm:p-2 text-neutral-600 hover:text-black hover:bg-neutral-200/80 disabled:opacity-20 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-colors"
-                          title="Move item up"
-                        >
-                          <ArrowUp className="h-4 w-4 stroke-[2.5]" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={originalIndex === reorderList.length - 1}
-                          onClick={() => moveReorderItem(originalIndex, "down")}
-                          className="p-1.5 sm:p-2 text-neutral-600 hover:text-black hover:bg-neutral-200/80 disabled:opacity-20 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-colors"
-                          title="Move item down"
-                        >
-                          <ArrowDown className="h-4 w-4 stroke-[2.5]" />
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => setJumpToPosId(null)}
+                            className="p-1 text-neutral-400 hover:text-white rounded-lg cursor-pointer"
+                            title="Cancel"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center shrink-0">
+                          {/* Jump to specific position button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setJumpToPosId(item.id);
+                              setJumpToPosValue(String(originalIndex + 1));
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-black bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
+                            title="Move directly to position number"
+                          >
+                            <Hash className="h-3.5 w-3.5 text-neutral-500" />
+                            <span>Move to #</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2718,19 +2788,32 @@ export default function AdminPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 sm:px-6 border-t border-neutral-200 bg-neutral-50 flex items-center justify-between gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  const sortedByDate = [...reorderList].sort(
-                    (a, b) => new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime()
-                  );
-                  setReorderList(sortedByDate);
-                }}
-                className="px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-black hover:bg-neutral-200/70 rounded-xl transition-colors cursor-pointer"
-              >
-                Reset to Newest First
-              </button>
+            <div className="p-4 sm:px-6 border-t border-neutral-200 bg-neutral-50 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-neutral-500 font-medium">Quick Sort:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sortedByDate = [...reorderList].sort(
+                      (a, b) => new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime()
+                    );
+                    setReorderList(sortedByDate);
+                  }}
+                  className="px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:text-black hover:bg-neutral-200/70 rounded-xl transition-colors cursor-pointer border border-neutral-200/80 bg-white shadow-2xs"
+                >
+                  Newest First
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sortedByPriceDesc = [...reorderList].sort((a, b) => (b.priceNum || 0) - (a.priceNum || 0));
+                    setReorderList(sortedByPriceDesc);
+                  }}
+                  className="hidden sm:inline-block px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:text-black hover:bg-neutral-200/70 rounded-xl transition-colors cursor-pointer border border-neutral-200/80 bg-white shadow-2xs"
+                >
+                  Price: High → Low
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
