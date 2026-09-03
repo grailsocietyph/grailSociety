@@ -4,10 +4,13 @@ import { ProductProvider } from "@/context/ProductContext";
 import { AdminAuthProvider } from "@/context/AdminAuthContext";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
 
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://grailsocietyph.com";
+const siteUrl = rawSiteUrl.startsWith("http://") || rawSiteUrl.startsWith("https://")
+  ? rawSiteUrl
+  : `https://${rawSiteUrl}`;
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://grailsocietyph.com"
-  ),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Grail Society",
     template: "%s | Grail Society",
@@ -16,13 +19,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Grail Society",
     description: "Grail items you don't have to hunt for",
-    url: "https://grailsocietyph.com",
+    url: siteUrl,
     siteName: "Grail Society",
     images: [
       {
-        url: "/white-logo.png",
-        width: 1536,
-        height: 1024,
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
         alt: "Grail Society",
       },
     ],
@@ -33,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Grail Society",
     description: "Grail items you don't have to hunt for",
-    images: ["/white-logo.png"],
+    images: ["/og-image.jpg"],
   },
   icons: {
     icon: [
