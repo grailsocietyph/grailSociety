@@ -12,7 +12,23 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "assets.grailsocietyph.com",
+      },
+      {
+        protocol: "https",
+        hostname: "grailsocietyph.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.grailsocietyph.com",
+      },
+      {
+        protocol: "https",
         hostname: "pub-abb39c535f0f43aa9d52a4a235edb52a.r2.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "**.r2.dev",
       },
       {
         protocol: "https",
@@ -20,7 +36,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "**.r2.dev",
+        hostname: "**.supabase.co",
       },
     ],
   },

@@ -36,6 +36,11 @@ import {
   ShoppingBag,
   Copy,
   Gift,
+  Star,
+  ArrowLeft,
+  ArrowRight,
+  LayoutGrid,
+  Grid3X3,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -134,8 +139,20 @@ export default function AdminPage() {
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [isSoldOut, setIsSoldOut] = useState(false);
 
-  // Drag and drop state for images
+  // Drag and drop & layout state for images
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [photoGridDensity, setPhotoGridDensity] = useState<"compact" | "comfortable">("compact");
+
+  // Auto-scroll active thumbnail into view in Live Preview tab
+  useEffect(() => {
+    if (activeModalTab === "preview") {
+      const thumb = document.getElementById(`admin-preview-thumb-${previewImageIndex}`);
+      if (thumb) {
+        thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+      }
+    }
+  }, [previewImageIndex, activeModalTab]);
 
   if (!isAuthLoaded) {
     return (
@@ -330,22 +347,52 @@ export default function AdminPage() {
     }
   };
 
+  const moveImageToFirst = (index: number) => {
+    if (index === 0) return;
+    setImages((prev) => {
+      const copy = [...prev];
+      const [target] = copy.splice(index, 1);
+      copy.unshift(target);
+      return copy;
+    });
+    setPreviewImageIndex(0);
+  };
+
+  const moveImageStep = (index: number, direction: "left" | "right") => {
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+    setImages((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIndex];
+      copy[targetIndex] = temp;
+      return copy;
+    });
+  };
+
   // Image Drag and Drop Handlers
   const handleDragStart = (index: number) => {
     setDraggedImageIndex(index);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
   };
 
   const handleDrop = (index: number) => {
+    setDragOverIndex(null);
     if (draggedImageIndex === null || draggedImageIndex === index) return;
 
     const updatedImages = [...images];
-    const draggedItem = updatedImages[draggedImageIndex];
-
-    updatedImages.splice(draggedImageIndex, 1);
+    const [draggedItem] = updatedImages.splice(draggedImageIndex, 1);
     updatedImages.splice(index, 0, draggedItem);
 
     setImages(updatedImages);
@@ -1779,11 +1826,54 @@ export default function AdminPage() {
 
                 {/* Product Photos Section */}
                 <div className="space-y-4 bg-neutral-50/60 p-4 sm:p-5 rounded-2xl border border-neutral-200/80">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                      Product Photos <span className="text-red-500">*</span>
-                    </h3>
-                    <span className="text-xs text-neutral-500 font-medium">{images.length} / 20 photos</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
+                        <span>Product Photos</span>
+                        <span className="text-red-500">*</span>
+                      </h3>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        Drag photos or use the quick buttons below to organize. Photo #1 is the primary cover.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <span className="text-xs font-semibold text-neutral-700 bg-neutral-200/80 px-2.5 py-1 rounded-lg">
+                        {images.length} / 20 photos
+                      </span>
+
+                      {/* Grid Density Toggle */}
+                      {images.length > 0 && (
+                        <div className="flex items-center bg-neutral-200/80 p-0.5 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoGridDensity("compact")}
+                            title="Compact View (5 columns)"
+                            className={`px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                              photoGridDensity === "compact"
+                                ? "bg-white text-black shadow-xs"
+                                : "text-neutral-500 hover:text-black"
+                            }`}
+                          >
+                            <LayoutGrid className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline text-[11px]">Compact</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhotoGridDensity("comfortable")}
+                            title="Comfortable View (3 columns)"
+                            className={`px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                              photoGridDensity === "comfortable"
+                                ? "bg-white text-black shadow-xs"
+                                : "text-neutral-500 hover:text-black"
+                            }`}
+                          >
+                            <Grid3X3 className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline text-[11px]">Large</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Inline Upload Alert Error */}
@@ -1795,39 +1885,49 @@ export default function AdminPage() {
                   )}
 
                   {/* Upload Button Box */}
-                  <label
-                    tabIndex={12}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        const fileInput = document.getElementById("admin-file-upload") as HTMLInputElement;
-                        if (fileInput) fileInput.click();
-                      }
-                    }}
-                    className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-5 sm:p-6 cursor-pointer transition-colors bg-white focus-visible:ring-2 focus-visible:ring-black outline-none ${errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
-                    }`}>
-                    {uploadingCount > 0 ? (
-                      <div className="flex flex-col items-center gap-2 text-neutral-600">
-                        <Loader2 className="h-6 w-6 animate-spin text-neutral-900" />
-                        <span className="text-sm font-medium">Uploading {uploadingCount} photo(s)...</span>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="h-6 w-6 text-neutral-500 mb-2" />
-                        <span className="text-sm font-medium text-neutral-900">Click to upload photos</span>
-                        <span className="text-xs text-neutral-400 mt-1">PNG, JPG, WEBP up to 10MB each (max 20 photos)</span>
-                      </>
-                    )}
-                    <input
-                      id="admin-file-upload"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      disabled={uploadingCount > 0 || images.length >= 20}
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
+                  {images.length < 20 && (
+                    <label
+                      tabIndex={12}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          const fileInput = document.getElementById("admin-file-upload") as HTMLInputElement;
+                          if (fileInput) fileInput.click();
+                        }
+                      }}
+                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl ${
+                        images.length > 0 ? "p-3.5 sm:p-4" : "p-5 sm:p-6"
+                      } cursor-pointer transition-colors bg-white focus-visible:ring-2 focus-visible:ring-black outline-none ${
+                        errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
+                      }`}
+                    >
+                      {uploadingCount > 0 ? (
+                        <div className="flex flex-col items-center gap-2 text-neutral-600">
+                          <Loader2 className="h-5 w-5 animate-spin text-neutral-900" />
+                          <span className="text-xs sm:text-sm font-medium">Uploading {uploadingCount} photo(s)...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="h-5 w-5 text-neutral-500 mb-1" />
+                          <span className="text-xs sm:text-sm font-medium text-neutral-900">
+                            {images.length === 0 ? "Click to upload photos" : "Add more photos"}
+                          </span>
+                          <span className="text-[11px] text-neutral-400 mt-0.5">
+                            PNG, JPG, WEBP up to 10MB ({20 - images.length} slots remaining)
+                          </span>
+                        </>
+                      )}
+                      <input
+                        id="admin-file-upload"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        disabled={uploadingCount > 0 || images.length >= 20}
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
 
                   {errors.images && (
                     <p className="text-xs text-red-600 font-medium flex items-center gap-1">
@@ -1836,41 +1936,121 @@ export default function AdminPage() {
                     </p>
                   )}
 
-                  {/* Photos Grid with Drag and Drop Reordering */}
+                  {/* Photos Grid with Drag and Drop Reordering and Quick Action Bar */}
                   {images.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                      {images.map((img, i) => (
-                        <div
-                          key={i}
-                          draggable
-                          onDragStart={() => handleDragStart(i)}
-                          onDragOver={handleDragOver}
-                          onDrop={() => handleDrop(i)}
-                          className="relative bg-white rounded-xl overflow-hidden border border-neutral-300 p-2 shadow-xs flex flex-col gap-2 cursor-grab active:cursor-grabbing hover:border-black transition-all"
-                        >
-                          <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-neutral-100">
-                            <Image src={img} alt={`Photo ${i + 1}`} fill unoptimized className="object-cover" />
+                    <div
+                      className={
+                        photoGridDensity === "compact"
+                          ? "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-2.5 pt-1"
+                          : "grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-3.5 pt-1"
+                      }
+                    >
+                      {images.map((img, i) => {
+                        const isDragged = draggedImageIndex === i;
+                        const isTarget = dragOverIndex === i && draggedImageIndex !== i;
+                        return (
+                          <div
+                            key={i}
+                            draggable
+                            onDragStart={() => handleDragStart(i)}
+                            onDragOver={(e) => handleDragOver(e, i)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={() => handleDrop(i)}
+                            className={`group relative bg-white rounded-xl overflow-hidden border p-1 shadow-2xs flex flex-col gap-1 cursor-grab active:cursor-grabbing transition-all ${
+                              isDragged
+                                ? "opacity-30 scale-95 border-dashed border-black ring-2 ring-black"
+                                : isTarget
+                                ? "border-black ring-2 ring-black scale-102 bg-neutral-100"
+                                : i === 0
+                                ? "border-neutral-900 ring-1 ring-black/10"
+                                : "border-neutral-300 hover:border-black"
+                            }`}
+                          >
+                            <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-neutral-100">
+                              <Image src={img} alt={`Photo ${i + 1}`} fill unoptimized className="object-cover" />
 
-                            {/* Drag handle indicator */}
-                            <div className="absolute top-1 left-1 bg-black/70 text-white p-1 rounded backdrop-blur-xs flex items-center gap-1">
-                              <GripVertical className="h-3 w-3" />
-                              {i === 0 && <span className="text-[9px] font-bold uppercase tracking-wider pr-1">Main</span>}
+                              {/* Number Badge */}
+                              <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
+                                {i === 0 ? (
+                                  <div className="bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                    <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                                    <span>#1 Main</span>
+                                  </div>
+                                ) : (
+                                  <div className="bg-black/80 backdrop-blur-xs text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                    <GripVertical className="h-2.5 w-2.5 opacity-60" />
+                                    <span>#{i + 1}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Delete button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeImage(i);
+                                }}
+                                className="absolute top-1.5 right-1.5 bg-black/65 hover:bg-red-600 text-white p-1 rounded-md cursor-pointer shadow-md transition-colors z-10"
+                                title="Remove photo"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+
+                              {/* Bottom Quick-Action Toolbar */}
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-4 pb-1.5 px-1.5 flex items-center justify-between opacity-95 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+                                {/* Move Left */}
+                                <button
+                                  type="button"
+                                  disabled={i === 0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveImageStep(i, "left");
+                                  }}
+                                  title="Move earlier (left)"
+                                  className="p-1 rounded bg-white/20 hover:bg-white text-white hover:text-black disabled:opacity-20 disabled:pointer-events-none transition-colors cursor-pointer"
+                                >
+                                  <ArrowLeft className="h-3 w-3" />
+                                </button>
+
+                                {/* Make Cover Button */}
+                                {i !== 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveImageToFirst(i);
+                                    }}
+                                    title="Set as Main Cover Photo"
+                                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white text-black hover:bg-amber-400 transition-colors flex items-center gap-0.5 cursor-pointer shadow-xs"
+                                  >
+                                    <Star className="h-2.5 w-2.5 fill-current" />
+                                    <span>Make Main</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[9px] font-bold text-amber-300 uppercase tracking-wider">
+                                    Cover Photo
+                                  </span>
+                                )}
+
+                                {/* Move Right */}
+                                <button
+                                  type="button"
+                                  disabled={i === images.length - 1}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveImageStep(i, "right");
+                                  }}
+                                  title="Move later (right)"
+                                  className="p-1 rounded bg-white/20 hover:bg-white text-white hover:text-black disabled:opacity-20 disabled:pointer-events-none transition-colors cursor-pointer"
+                                >
+                                  <ArrowRight className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeImage(i);
-                              }}
-                              className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full cursor-pointer shadow-md transition-colors z-10"
-                              title="Remove photo"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1882,16 +2062,20 @@ export default function AdminPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start pt-2">
 
                   {/* Left Section: Vertical Thumbnails + Main Image Viewer */}
-                  <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
+                  <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4 items-start">
                     {/* Vertical Thumbnail List on the Left */}
-                    <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0">
+                    <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0 sm:w-20 w-full pr-0 sm:pr-1 pb-2 sm:pb-0 scroll-smooth">
                       {(images.length > 0 ? images : ["/brand-image.jpg"]).map((img, idx) => (
                         <button
                           key={idx}
+                          id={`admin-preview-thumb-${idx}`}
                           type="button"
                           onClick={() => setPreviewImageIndex(idx)}
-                          className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-neutral-100 overflow-hidden rounded-none border-2 transition-all cursor-pointer ${previewImageIndex === idx ? "border-black" : "border-transparent opacity-70 hover:opacity-100"
-                            }`}
+                          className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-neutral-100 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                            previewImageIndex === idx
+                              ? "border-black ring-2 ring-black/10 scale-100"
+                              : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
+                          }`}
                         >
                           <Image
                             src={img}
@@ -1900,12 +2084,17 @@ export default function AdminPage() {
                             unoptimized
                             className="object-cover object-center"
                           />
+                          {idx === 0 && (
+                            <span className="absolute bottom-1 left-1 bg-black/80 text-white text-[8px] font-bold px-1 py-0.2 rounded">
+                              Main
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
 
-                    {/* Main Active Photo Viewer */}
-                    <div className="relative flex-1 aspect-square sm:h-[35rem] bg-neutral-100 overflow-hidden rounded-none">
+                    {/* Main Active Photo Viewer (4:3 Portrait Orientation) */}
+                    <div className="relative flex-1 aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-2xl">
                       {images.length > 0 ? (
                         <Image
                           src={images[previewImageIndex] || images[0]}
@@ -1928,7 +2117,7 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setPreviewImageIndex((prev) => (prev - 1 + images.length) % images.length)}
                             aria-label="Previous image"
-                            className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer"
+                            className="w-11 h-11 rounded-full bg-white/90 shadow-md flex items-center justify-center text-neutral-900 hover:bg-white hover:scale-105 transition-all cursor-pointer backdrop-blur-xs"
                           >
                             <ChevronLeft className="h-5 w-5 stroke-2" />
                           </button>
@@ -1936,7 +2125,7 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setPreviewImageIndex((prev) => (prev + 1) % images.length)}
                             aria-label="Next image"
-                            className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center text-neutral-900 hover:bg-neutral-50 transition-colors cursor-pointer"
+                            className="w-11 h-11 rounded-full bg-white/90 shadow-md flex items-center justify-center text-neutral-900 hover:bg-white hover:scale-105 transition-all cursor-pointer backdrop-blur-xs"
                           >
                             <ChevronRight className="h-5 w-5 stroke-2" />
                           </button>

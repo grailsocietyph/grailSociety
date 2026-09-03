@@ -1,19 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useProducts, Product } from "@/context/ProductContext";
 
 export default function NewArrivals() {
   const { products } = useProducts();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Filter published products strictly marked as new arrivals
   const publishedNewArrivals = products.filter(
     (p) => p.status === "published" && p.isNewArrival
   );
 
-  if (publishedNewArrivals.length === 0) {
+  if (!mounted || publishedNewArrivals.length === 0) {
     return null;
   }
 

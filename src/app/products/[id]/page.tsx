@@ -137,6 +137,14 @@ export default function ProductDetailPage({ params }: PageProps) {
     }
   }, [activeScrollIndex, lightboxIndex]);
 
+  // Auto-scroll storefront thumbnail into view when active image changes
+  useEffect(() => {
+    const thumb = document.getElementById(`storefront-thumb-${activeImageIndex}`);
+    if (thumb) {
+      thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+  }, [activeImageIndex]);
+
   // Keyboard navigation for Lightbox
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -241,16 +249,19 @@ export default function ProductDetailPage({ params }: PageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             
             {/* Left Section: Thumbnails + Main Image Viewer */}
-            <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
+            <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4 items-start">
               
               {/* Vertical Thumbnail List */}
-              <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0">
+              <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0 sm:w-20 w-full pr-0 sm:pr-1 pb-2 sm:pb-0 scroll-smooth">
                 {productImages.map((img, idx) => (
                   <button
                     key={idx}
+                    id={`storefront-thumb-${idx}`}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-neutral-100 overflow-hidden rounded-none border-2 transition-all cursor-pointer ${
-                      activeImageIndex === idx ? "border-black" : "border-transparent opacity-70 hover:opacity-100"
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-neutral-100 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                      activeImageIndex === idx
+                        ? "border-black ring-2 ring-black/10 scale-100"
+                        : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
                     }`}
                   >
                     <Image
@@ -260,13 +271,18 @@ export default function ProductDetailPage({ params }: PageProps) {
                       sizes="80px"
                       className="object-cover object-center"
                     />
+                    {idx === 0 && (
+                      <span className="absolute bottom-1 left-1 bg-black/80 text-white text-[8px] font-bold px-1 py-0.2 rounded">
+                        Main
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
 
-              {/* Main Active Photo Viewer */}
+              {/* Main Active Photo Viewer (4:3 Portrait Orientation) */}
               <div 
-                className="relative flex-1 aspect-square sm:h-[35rem] bg-neutral-100 overflow-hidden rounded-none cursor-zoom-in"
+                className="relative flex-1 aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-2xl cursor-zoom-in"
                 onClick={() => setLightboxIndex(activeImageIndex)}
               >
                 <Image
