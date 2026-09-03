@@ -39,6 +39,9 @@ import {
   Star,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  ListOrdered,
   LayoutGrid,
   Grid3X3,
 } from "lucide-react";
@@ -53,6 +56,7 @@ export default function AdminPage() {
     bulkPublish,
     bulkDraft,
     bulkDelete,
+    reorderProducts,
     refreshProducts,
   } = useProducts();
   const { isAuthenticated, isAuthLoaded, logout } = useAdminAuth();
@@ -144,6 +148,15 @@ export default function AdminPage() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [photoGridDensity, setPhotoGridDensity] = useState<"compact" | "comfortable">("compact");
 
+  // Reorder Modal states (Hook placed at top to follow Rules of Hooks)
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+  const [reorderList, setReorderList] = useState<Product[]>([]);
+  const [reorderSearch, setReorderSearch] = useState("");
+  const [draggedReorderIdx, setDraggedReorderIdx] = useState<number | null>(null);
+  const [dragOverReorderIdx, setDragOverReorderIdx] = useState<number | null>(null);
+  const [isSavingReorder, setIsSavingReorder] = useState(false);
+  const [reorderSavedSuccess, setReorderSavedSuccess] = useState(false);
+
   // Auto-scroll active thumbnail into view in Live Preview tab
   useEffect(() => {
     if (activeModalTab === "preview") {
@@ -154,6 +167,7 @@ export default function AdminPage() {
     }
   }, [previewImageIndex, activeModalTab]);
 
+  // Auth Protection Return
   if (!isAuthLoaded) {
     return (
       <div className="min-h-screen bg-neutral-100 flex items-center justify-center font-helvetica px-4">
@@ -226,6 +240,78 @@ export default function AdminPage() {
     setUploadError(null);
     setErrors({});
     setIsModalOpen(true);
+  };
+
+  const openReorderModal = () => {
+    setReorderList([...products]);
+    setReorderSearch("");
+    setReorderSavedSuccess(false);
+    setDraggedReorderIdx(null);
+    setDragOverReorderIdx(null);
+    setIsReorderModalOpen(true);
+  };
+
+  const moveReorderItem = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= reorderList.length) return;
+    const copy = [...reorderList];
+    const [moved] = copy.splice(index, 1);
+    copy.splice(targetIndex, 0, moved);
+    setReorderList(copy);
+  };
+
+  const handleReorderDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedReorderIdx(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleReorderDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverReorderIdx !== index) {
+      setDragOverReorderIdx(index);
+    }
+  };
+
+  const handleReorderDrop = (dropIndex: number) => {
+    setDragOverReorderIdx(null);
+    if (draggedReorderIdx === null || draggedReorderIdx === dropIndex) {
+      setDraggedReorderIdx(null);
+      return;
+    }
+
+    const updated = [...reorderList];
+    const [moved] = updated.splice(draggedReorderIdx, 1);
+    updated.splice(dropIndex, 0, moved);
+
+    setReorderList(updated);
+    setDraggedReorderIdx(null);
+  };
+
+  const handleMoveToTop = (itemId: string) => {
+    const currentIdx = reorderList.findIndex((p) => p.id === itemId);
+    if (currentIdx <= 0) return;
+    const updated = [...reorderList];
+    const [moved] = updated.splice(currentIdx, 1);
+    updated.unshift(moved);
+    setReorderList(updated);
+  };
+
+  const handleSaveReorder = async () => {
+    setIsSavingReorder(true);
+    try {
+      const orderedIds = reorderList.map((p) => p.id);
+      await reorderProducts(orderedIds);
+      setReorderSavedSuccess(true);
+      setTimeout(() => {
+        setIsReorderModalOpen(false);
+        setReorderSavedSuccess(false);
+      }, 900);
+    } catch (err) {
+      console.error("Failed to save product order:", err);
+    } finally {
+      setIsSavingReorder(false);
+    }
   };
 
   const openAnnouncementModal = () => {
@@ -482,6 +568,9 @@ export default function AdminPage() {
       }
 
       const finalTagSize = ["bags", "accessories"].includes(collectionSlug) ? "N/A" : tagSize;
+      const existingDisplayOrder = editingId
+        ? products.find((p) => p.id === editingId)?.displayOrder ?? 0
+        : 0;
 
       const payload = {
         title: title.trim(),
@@ -496,6 +585,7 @@ export default function AdminPage() {
         isNewArrival,
         status: targetStatus,
         isSoldOut,
+        displayOrder: existingDisplayOrder,
         dateAdded: new Date().toISOString().split("T")[0],
       };
 
@@ -799,6 +889,14 @@ export default function AdminPage() {
                   >
                     <Megaphone className="h-4 w-4 text-neutral-800 shrink-0" />
                     <span>Announcement</span>
+                  </button>
+                  <button
+                    onClick={openReorderModal}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border border-neutral-300 text-neutral-900 text-xs sm:text-sm font-bold rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer bg-white shadow-2xs whitespace-nowrap shrink-0"
+                    title="Manage storefront display order"
+                  >
+                    <ListOrdered className="h-4 w-4 text-neutral-800 shrink-0" />
+                    <span>Arrange Order</span>
                   </button>
                   <button
                     onClick={() => setSelectionMode(true)}
@@ -1129,7 +1227,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-neutral-100 text-xs">
-                    <span className="text-neutral-500">
+                    <span className="text-neutral-500 text-[11px]">
                       New Arrival: {item.isNewArrival ? "Yes" : "No"}
                     </span>
                     <div className="flex items-center gap-2">
@@ -2270,6 +2368,248 @@ export default function AdminPage() {
                 {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 <span>Publish Live</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Reorder Products Modal */}
+      {isReorderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-neutral-200 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-black text-white rounded-xl">
+                  <ListOrdered className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-neutral-900">
+                    Arrange Storefront Item Order
+                  </h2>
+                  <p className="text-xs text-neutral-500">
+                    Drag rows, type position numbers, or click &quot;Make #1 Hero&quot; to set the sequence.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsReorderModalOpen(false)}
+                className="p-2 text-neutral-400 hover:text-black rounded-xl hover:bg-neutral-200/60 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Quick Search inside Reorder Modal */}
+            <div className="px-5 py-3 border-b border-neutral-100 bg-white">
+              <div className="relative w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+                <input
+                  type="text"
+                  value={reorderSearch}
+                  onChange={(e) => setReorderSearch(e.target.value)}
+                  placeholder="Search item by title or category to jump..."
+                  className="w-full pl-9 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-black focus:bg-white transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Modal Body: Drag & Drop + Direct Editable Position List */}
+            <div className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-2">
+              {reorderList
+                .map((item, originalIndex) => ({ item, originalIndex }))
+                .filter(({ item }) => {
+                  if (!reorderSearch.trim()) return true;
+                  const q = reorderSearch.toLowerCase().trim();
+                  return (
+                    item.title.toLowerCase().includes(q) ||
+                    (item.collectionSlug || "").toLowerCase().includes(q) ||
+                    (item.priceFormatted || "").toLowerCase().includes(q)
+                  );
+                })
+                .map(({ item, originalIndex }) => {
+                  const isHero = originalIndex === 0;
+                  const isBeingDragged = draggedReorderIdx === originalIndex;
+                  const isTarget = dragOverReorderIdx === originalIndex;
+
+                  return (
+                    <div
+                      key={item.id}
+                      draggable
+                      onDragStart={(e) => handleReorderDragStart(e, originalIndex)}
+                      onDragOver={(e) => handleReorderDragOver(e, originalIndex)}
+                      onDragLeave={() => setDragOverReorderIdx(null)}
+                      onDrop={() => handleReorderDrop(originalIndex)}
+                      onDragEnd={() => {
+                        setDraggedReorderIdx(null);
+                        setDragOverReorderIdx(null);
+                      }}
+                      className={`flex items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl transition-all select-none ${
+                        isBeingDragged
+                          ? "opacity-30 scale-95 border-dashed border-black bg-neutral-100"
+                          : isTarget
+                          ? "ring-2 ring-black bg-neutral-100/90 scale-[1.01] border-neutral-300 shadow-sm"
+                          : isHero
+                          ? "bg-amber-50/80 border border-amber-300 shadow-2xs"
+                          : "bg-white hover:bg-neutral-50 border border-neutral-200/90"
+                      }`}
+                    >
+                      {/* Left: Drag Handle + Editable Position Input + Thumbnail + Info */}
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        {/* Drag Handle */}
+                        <div
+                          className="text-neutral-400 hover:text-black cursor-grab active:cursor-grabbing p-1 shrink-0"
+                          title="Drag to rearrange position"
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+
+                        {/* Position Badge */}
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
+                            isHero
+                              ? "bg-black text-amber-400 shadow-2xs"
+                              : "bg-neutral-100 text-neutral-800"
+                          }`}
+                        >
+                          #{originalIndex + 1}
+                        </div>
+
+                        {/* Photo Thumbnail */}
+                        <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-white border border-neutral-200 rounded-lg overflow-hidden shrink-0">
+                          {item.images && item.images[0] ? (
+                            <Image
+                              src={item.images[0]}
+                              alt={item.title}
+                              fill
+                              unoptimized
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[9px] text-neutral-400">
+                              No img
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
+                              {item.title}
+                            </p>
+                            {isHero && (
+                              <span className="bg-amber-400 text-black text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shrink-0">
+                                Hero #1
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[10px] sm:text-[11px] text-neutral-500 truncate">
+                            <span className="font-semibold text-neutral-700">{item.priceFormatted}</span>
+                            <span>•</span>
+                            <span className="capitalize">{getCategoryLabel(item.collectionSlug)}</span>
+                            <span>•</span>
+                            <span
+                              className={`inline-flex px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] uppercase font-bold ${
+                                item.status === "published"
+                                  ? "text-emerald-700 bg-emerald-50"
+                                  : "text-amber-700 bg-amber-50"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: 1-Click "Make #1" + Up / Down Controls */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {!isHero && (
+                          <button
+                            type="button"
+                            onClick={() => handleMoveToTop(item.id)}
+                            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-neutral-700 hover:text-black bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
+                            title="Instantly make this product the #1 Hero item"
+                          >
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
+                            <span>Make #1</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={originalIndex === 0}
+                          onClick={() => moveReorderItem(originalIndex, "up")}
+                          className="p-1.5 sm:p-2 text-neutral-600 hover:text-black hover:bg-neutral-200/80 disabled:opacity-20 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-colors"
+                          title="Move item up"
+                        >
+                          <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={originalIndex === reorderList.length - 1}
+                          onClick={() => moveReorderItem(originalIndex, "down")}
+                          className="p-1.5 sm:p-2 text-neutral-600 hover:text-black hover:bg-neutral-200/80 disabled:opacity-20 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-colors"
+                          title="Move item down"
+                        >
+                          <ArrowDown className="h-4 w-4 stroke-[2.5]" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {reorderList.length === 0 && (
+                <div className="py-8 text-center text-sm text-neutral-500">
+                  No items in inventory to reorder.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:px-6 border-t border-neutral-200 bg-neutral-50 flex items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const sortedByDate = [...reorderList].sort(
+                    (a, b) => new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime()
+                  );
+                  setReorderList(sortedByDate);
+                }}
+                className="px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-black hover:bg-neutral-200/70 rounded-xl transition-colors cursor-pointer"
+              >
+                Reset to Newest First
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isSavingReorder}
+                  onClick={() => setIsReorderModalOpen(false)}
+                  className="px-4 py-2.5 text-xs font-medium text-neutral-600 hover:text-black rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingReorder}
+                  onClick={handleSaveReorder}
+                  className="px-6 py-2.5 bg-black text-white text-xs font-bold rounded-xl hover:bg-neutral-800 disabled:opacity-50 cursor-pointer flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  {isSavingReorder ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Saving Order...</span>
+                    </>
+                  ) : reorderSavedSuccess ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-400 stroke-[3]" />
+                      <span>Saved!</span>
+                    </>
+                  ) : (
+                    <span>Save Sequence</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

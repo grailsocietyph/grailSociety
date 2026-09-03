@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   is_new_arrival BOOLEAN DEFAULT true,
   status TEXT DEFAULT 'draft',
   is_sold_out BOOLEAN DEFAULT false,
+  display_order INTEGER DEFAULT 0,
   date_added DATE DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -30,6 +31,11 @@ CREATE INDEX IF NOT EXISTS idx_products_status ON public.products(status);
 CREATE INDEX IF NOT EXISTS idx_products_collection ON public.products(collection_slug);
 CREATE INDEX IF NOT EXISTS idx_products_new_arrival ON public.products(is_new_arrival);
 CREATE INDEX IF NOT EXISTS idx_products_date_added ON public.products(date_added DESC);
+CREATE INDEX IF NOT EXISTS idx_products_display_order ON public.products(display_order ASC);
+
+-- 2.1 For existing databases, run this quick migration:
+-- ALTER TABLE public.products ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+-- CREATE INDEX IF NOT EXISTS idx_products_display_order ON public.products(display_order ASC);
 
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;

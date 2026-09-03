@@ -71,11 +71,15 @@ export default function CollectionDetailPage({ params }: PageProps) {
     }).sort((a, b) => {
       if (!currentSort) return 0;
       switch (currentSort) {
-        case "Featured":
+        case "Featured": {
+          const orderA = a.displayOrder && a.displayOrder > 0 ? a.displayOrder : Infinity;
+          const orderB = b.displayOrder && b.displayOrder > 0 ? b.displayOrder : Infinity;
+          if (orderA !== orderB) return orderA - orderB;
           // Display all new arrivals first, then other items by newest date
           if (a.isNewArrival && !b.isNewArrival) return -1;
           if (!a.isNewArrival && b.isNewArrival) return 1;
-          return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+          return new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime();
+        }
         case "Alphabetically, A-Z":
           return a.title.localeCompare(b.title);
         case "Alphabetically, Z-A":

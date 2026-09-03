@@ -52,8 +52,12 @@ export default function NewArrivalsPage() {
     }).sort((a, b) => {
       if (!currentSort) return 0;
       switch (currentSort) {
-        case "Featured":
-          return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+        case "Featured": {
+          const orderA = a.displayOrder && a.displayOrder > 0 ? a.displayOrder : Infinity;
+          const orderB = b.displayOrder && b.displayOrder > 0 ? b.displayOrder : Infinity;
+          if (orderA !== orderB) return orderA - orderB;
+          return new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime();
+        }
         case "Alphabetically, A-Z":
           return a.title.localeCompare(b.title);
         case "Alphabetically, Z-A":

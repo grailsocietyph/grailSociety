@@ -24,6 +24,7 @@ export interface DbProduct {
   status: "draft" | "published";
   is_sold_out: boolean;
   date_added: string;
+  display_order?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -49,6 +50,7 @@ export function mapDbProductToProduct(row: DbProduct): Product {
     status: (row.status as "draft" | "published") || "draft",
     isSoldOut: Boolean(row.is_sold_out),
     dateAdded: row.date_added || new Date().toISOString().split("T")[0],
+    displayOrder: row.display_order !== undefined && row.display_order !== null ? Number(row.display_order) : 0,
   };
 }
 
@@ -73,6 +75,7 @@ export function mapProductToDbProduct(product: Partial<Product>): Partial<DbProd
   if (product.status !== undefined) dbItem.status = product.status;
   if (product.isSoldOut !== undefined) dbItem.is_sold_out = product.isSoldOut;
   if (product.dateAdded !== undefined) dbItem.date_added = product.dateAdded;
+  if (product.displayOrder !== undefined) dbItem.display_order = product.displayOrder;
 
   return dbItem;
 }

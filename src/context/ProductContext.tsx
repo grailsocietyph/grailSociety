@@ -25,6 +25,19 @@ export interface Product {
   status: "draft" | "published";
   isSoldOut?: boolean;
   dateAdded: string;
+  displayOrder?: number;
+}
+
+export function sortProducts(items: Product[]): Product[] {
+  return [...items].sort((a, b) => {
+    const orderA = a.displayOrder && a.displayOrder > 0 ? a.displayOrder : Infinity;
+    const orderB = b.displayOrder && b.displayOrder > 0 ? b.displayOrder : Infinity;
+
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    return new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime();
+  });
 }
 
 interface ProductContextType {
@@ -37,6 +50,7 @@ interface ProductContextType {
   bulkPublish: (ids: string[]) => Promise<boolean>;
   bulkDraft: (ids: string[]) => Promise<boolean>;
   bulkDelete: (ids: string[]) => Promise<boolean>;
+  reorderProducts: (orderedIds: string[]) => Promise<boolean>;
   refreshProducts: () => Promise<void>;
 }
 
@@ -101,9 +115,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
       if (data && data.length > 0) {
         const mapped = data.map((item: DbProduct) => mapDbProductToProduct(item));
-        setProducts(mapped);
+        const sorted = sortProducts(mapped);
+        setProducts(sorted);
         if (typeof window !== "undefined") {
-          localStorage.setItem("grail_society_products_cache", JSON.stringify(mapped));
+          localStorage.setItem("grail_society_products_cache", JSON.stringify(sorted));
         }
       } else {
         setProducts([]);
@@ -131,11 +146,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         (payload) => {
           if (payload.eventType === "INSERT") {
             const newProd = mapDbProductToProduct(payload.new as DbProduct);
-            setProducts((prev) => [newProd, ...prev.filter((p) => p.id !== newProd.id)]);
+            setProducts((prev) => sortProducts([newProd, ...prev.filter((p) => p.id !== newProd.id)]));
           } else if (payload.eventType === "UPDATE") {
             const updatedProd = mapDbProductToProduct(payload.new as DbProduct);
             setProducts((prev) =>
-              prev.map((p) => (p.id === updatedProd.id ? updatedProd : p))
+              sortProducts(prev.map((p) => (p.id === updatedProd.id ? updatedProd : p)))
             );
           } else if (payload.eventType === "DELETE") {
             const deletedId = (payload.old as any).id;
@@ -164,7 +179,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     const productWithId: Product = { ...newProd, id: tempId };
 
     // Optimistic state update
-    setProducts((prev) => [productWithId, ...prev]);
+    setProducts((prev) => sortProducts([productWithId, ...prev]));
 
     try {
       const dbPayload = mapProductToDbProduct(productWithId);
@@ -182,7 +197,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         const savedProduct = mapDbProductToProduct(data as DbProduct);
-        setProducts((prev) => prev.map((p) => (p.id === tempId ? savedProduct : p)));
+        setProducts((prev) => sortProducts(prev.map((p) => (p.id === tempId ? savedProduct : p))));
         return savedProduct;
       }
       return productWithId;
@@ -198,7 +213,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
     // Optimistic state update
     setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p))
+      sortProducts(prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)))
     );
 
     try {
@@ -346,6 +361,40 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const reorderProducts = async (orderedIds: string[]): Promise<boolean> => {
+    const orderMap = new Map(orderedIds.map((id, index) => [id, index + 1]));
+
+    // Optimistic state update
+    setProducts((prev) => {
+      const updated = prev.map((p) => {
+        if (orderMap.has(p.id)) {
+          return { ...p, displayOrder: orderMap.get(p.id)! };
+        }
+        return p;
+      });
+      return sortProducts(updated);
+    });
+
+    try {
+      const updates = orderedIds.map((id, index) =>
+        supabase
+          .from("products")
+          .update({ display_order: index + 1 })
+          .eq("id", id)
+      );
+
+      const results = await Promise.all(updates);
+      const anyError = results.find((r) => r.error);
+      if (anyError && anyError.error) {
+        console.warn("Supabase batch reorder note:", anyError.error.message);
+      }
+      return true;
+    } catch (err) {
+      console.error("Failed to update product order:", err);
+      return false;
+    }
+  };
+
   return (
     <ProductContext.Provider
       value={{
@@ -358,6 +407,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         bulkPublish,
         bulkDraft,
         bulkDelete,
+        reorderProducts,
         refreshProducts: fetchProducts,
       }}
     >
