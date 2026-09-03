@@ -995,7 +995,7 @@ export default function AdminPage() {
                         </td>
                       )}
                       <td className="py-3 px-4">
-                        <div className="relative w-12 h-12 bg-neutral-100 overflow-hidden rounded-lg">
+                        <div className="relative w-12 h-12 bg-white border border-neutral-200/80 overflow-hidden rounded-lg">
                           {item.images && item.images[0] ? (
                             <Image
                               src={item.images[0]}
@@ -1090,7 +1090,7 @@ export default function AdminPage() {
                         )}
                       </button>
                     )}
-                    <div className="relative w-16 h-16 bg-neutral-100 rounded-xl overflow-hidden shrink-0">
+                    <div className="relative w-16 h-16 bg-white border border-neutral-200/80 rounded-xl overflow-hidden shrink-0">
                       {item.images && item.images[0] ? (
                         <Image
                           src={item.images[0]}
@@ -1966,7 +1966,7 @@ export default function AdminPage() {
                                 : "border-neutral-300 hover:border-black"
                             }`}
                           >
-                            <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-neutral-100">
+                            <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-white border border-neutral-200/80">
                               <Image src={img} alt={`Photo ${i + 1}`} fill unoptimized className="object-cover" />
 
                               {/* Number Badge */}
@@ -2071,7 +2071,7 @@ export default function AdminPage() {
                           id={`admin-preview-thumb-${idx}`}
                           type="button"
                           onClick={() => setPreviewImageIndex(idx)}
-                          className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-neutral-100 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                          className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-white overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
                             previewImageIndex === idx
                               ? "border-black ring-2 ring-black/10 scale-100"
                               : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
@@ -2094,7 +2094,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* Main Active Photo Viewer (4:3 Portrait Orientation) */}
-                    <div className="relative flex-1 aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-2xl">
+                    <div className="relative flex-1 aspect-[3/4] w-full bg-white overflow-hidden rounded-2xl">
                       {images.length > 0 ? (
                         <Image
                           src={images[previewImageIndex] || images[0]}

@@ -323,7 +323,7 @@ export default function Header() {
                           onClick={() => handleSelectProduct(item.id)}
                           className="flex items-center gap-3.5 p-3 hover:bg-neutral-50 transition-colors group cursor-pointer"
                         >
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200/70">
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-white shrink-0 border border-neutral-200/70">
                             <Image
                               src={item.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"}
                               alt={item.title}

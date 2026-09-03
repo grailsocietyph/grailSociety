@@ -311,7 +311,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     key={idx}
                     id={`storefront-thumb-${idx}`}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-neutral-100 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-white overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
                       activeImageIndex === idx
                         ? "border-black ring-2 ring-black/10 scale-100"
                         : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
@@ -335,7 +335,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Main Active Photo Viewer (4:3 Portrait Orientation) */}
               <div 
-                className="relative flex-1 aspect-[3/4] w-full bg-neutral-100 overflow-hidden rounded-2xl cursor-zoom-in group select-none"
+                className="relative flex-1 aspect-[3/4] w-full bg-white overflow-hidden rounded-2xl cursor-zoom-in group select-none"
                 onClick={() => setLightboxIndex(activeImageIndex)}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -481,7 +481,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
                 {suggestedProducts.map((item) => (
                   <Link key={item.id} href={`/products/${item.id}`} className="group cursor-pointer">
-                    <div className="relative aspect-square w-full bg-neutral-100 overflow-hidden rounded-none mb-3">
+                    <div className="relative aspect-square w-full bg-white overflow-hidden rounded-none mb-3">
                       <Image
                         src={item.images?.[0] || "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"}
                         alt={item.title}

@@ -9,7 +9,7 @@ export default function BrandFeature() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
 
         {/* Left Side: Brand Image */}
-        <div className="relative aspect-square w-full overflow-hidden bg-neutral-100 rounded-none">
+        <div className="relative aspect-square w-full overflow-hidden bg-white rounded-none">
           <Image
             src="/brand-image.jpg"
             alt="Grail Society Collection"

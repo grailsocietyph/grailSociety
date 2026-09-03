@@ -370,7 +370,7 @@ function ProductCard({ product }: { product: Product }) {
       className="group/card flex flex-col cursor-pointer"
     >
       <div 
-        className="relative aspect-square w-full overflow-hidden bg-neutral-100 rounded-none mb-3 select-none"
+        className="relative aspect-square w-full overflow-hidden bg-white rounded-none mb-3 select-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >

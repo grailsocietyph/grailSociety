@@ -68,7 +68,7 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
   return (
     <Link href={`/products/${product.id}`} className="w-full h-full flex flex-col justify-between group/card cursor-pointer">
       <div
-        className={`relative w-full overflow-hidden bg-[#f6f6f6] rounded-none mb-2 ${
+        className={`relative w-full overflow-hidden bg-white rounded-none mb-2 ${
           isHero ? "h-[360px] sm:h-[420px] md:h-[calc(100%-3rem)] min-h-[380px]" : "aspect-square"
         }`}
       >
