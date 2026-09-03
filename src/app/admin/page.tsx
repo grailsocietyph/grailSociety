@@ -93,6 +93,28 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // 10 items per page before advancing to page 2
 
+  // Helper functions for garment measurement units (inches)
+  const stripInch = (val?: string) => {
+    if (!val) return "";
+    return val.replace(/["'\s]|in$/gi, "").trim();
+  };
+
+  const formatInch = (val?: string) => {
+    if (!val) return "";
+    const cleaned = stripInch(val);
+    return cleaned ? `${cleaned}"` : "";
+  };
+
+  const sanitizeMeasurementInput = (val: string) => {
+    // Keep only numbers and at most one decimal point
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length > 2) {
+      return parts[0] + "." + parts.slice(1).join("");
+    }
+    return cleaned;
+  };
+
   // Form states - initial clean empty values (no pre-filled static mock data)
   const [title, setTitle] = useState("");
   const [priceNum, setPriceNum] = useState("");
@@ -167,10 +189,10 @@ export default function AdminPage() {
     setPriceNum(item.priceNum ? item.priceNum.toString() : "");
     setCollectionSlug(item.collectionSlug || "t-shirts");
     setTagSize(item.tagSize || "N/A");
-    setLengthVal(item.measurementsData?.length || "");
-    setWidthVal(item.measurementsData?.width || "");
-    setWaistVal(item.measurementsData?.waist || "");
-    setLegOpeningVal(item.measurementsData?.legOpening || "");
+    setLengthVal(stripInch(item.measurementsData?.length));
+    setWidthVal(stripInch(item.measurementsData?.width));
+    setWaistVal(stripInch(item.measurementsData?.waist));
+    setLegOpeningVal(stripInch(item.measurementsData?.legOpening));
     setNotesVal(item.measurementsData?.notes || "");
     setCondition(item.condition || "");
     setIssue(item.issue || item.measurementsData?.issue || "");
@@ -396,9 +418,9 @@ export default function AdminPage() {
       } else if (collectionSlug === "shoes") {
         measurementsData = { notes: notesVal.trim() };
       } else if (["shorts", "pants"].includes(collectionSlug)) {
-        measurementsData = { waist: waistVal.trim(), length: lengthVal.trim(), legOpening: legOpeningVal.trim() };
+        measurementsData = { waist: formatInch(waistVal), length: formatInch(lengthVal), legOpening: formatInch(legOpeningVal) };
       } else {
-        measurementsData = { length: lengthVal.trim(), width: widthVal.trim() };
+        measurementsData = { length: formatInch(lengthVal), width: formatInch(widthVal) };
       }
 
       if (issue.trim()) {
@@ -549,10 +571,10 @@ export default function AdminPage() {
   const liveFormattedMeasurements = notesVal.trim()
     ? notesVal.trim()
     : [
-      lengthVal.trim() ? `Length: ${lengthVal.trim()}` : "",
-      widthVal.trim() ? `Width: ${widthVal.trim()}` : "",
-      waistVal.trim() ? `Waist: ${waistVal.trim()}` : "",
-      legOpeningVal.trim() ? `Leg Opening: ${legOpeningVal.trim()}` : "",
+      lengthVal.trim() ? `Length: ${formatInch(lengthVal)}` : "",
+      widthVal.trim() ? `Width: ${formatInch(widthVal)}` : "",
+      waistVal.trim() ? `Waist: ${formatInch(waistVal)}` : "",
+      legOpeningVal.trim() ? `Leg Opening: ${formatInch(legOpeningVal)}` : "",
     ].filter(Boolean).join(" | ") || "N/A";
 
   return (
@@ -1516,18 +1538,25 @@ export default function AdminPage() {
                           <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
                             Length <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
-                            tabIndex={7}
-                            value={lengthVal}
-                            onChange={(e) => {
-                              setLengthVal(e.target.value);
-                              if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
-                            }}
-                            placeholder="e.g. 25"
-                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                              }`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              tabIndex={7}
+                              value={lengthVal}
+                              onChange={(e) => {
+                                const clean = sanitizeMeasurementInput(e.target.value);
+                                setLengthVal(clean);
+                                if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
+                              }}
+                              placeholder="e.g. 25"
+                              className={`w-full pl-3 pr-8 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                                }`}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-sm pointer-events-none select-none">
+                              &quot;
+                            </span>
+                          </div>
                           {errors.lengthVal && (
                             <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -1539,18 +1568,25 @@ export default function AdminPage() {
                           <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
                             Width <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
-                            tabIndex={8}
-                            value={widthVal}
-                            onChange={(e) => {
-                              setWidthVal(e.target.value);
-                              if (errors.widthVal) setErrors((prev) => ({ ...prev, widthVal: "" }));
-                            }}
-                            placeholder="e.g. 33"
-                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.widthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                              }`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              tabIndex={8}
+                              value={widthVal}
+                              onChange={(e) => {
+                                const clean = sanitizeMeasurementInput(e.target.value);
+                                setWidthVal(clean);
+                                if (errors.widthVal) setErrors((prev) => ({ ...prev, widthVal: "" }));
+                              }}
+                              placeholder="e.g. 22"
+                              className={`w-full pl-3 pr-8 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.widthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                                }`}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-sm pointer-events-none select-none">
+                              &quot;
+                            </span>
+                          </div>
                           {errors.widthVal && (
                             <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -1568,18 +1604,25 @@ export default function AdminPage() {
                           <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
                             Waist <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
-                            tabIndex={7}
-                            value={waistVal}
-                            onChange={(e) => {
-                              setWaistVal(e.target.value);
-                              if (errors.waistVal) setErrors((prev) => ({ ...prev, waistVal: "" }));
-                            }}
-                            placeholder="e.g. 32"
-                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.waistVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                              }`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              tabIndex={7}
+                              value={waistVal}
+                              onChange={(e) => {
+                                const clean = sanitizeMeasurementInput(e.target.value);
+                                setWaistVal(clean);
+                                if (errors.waistVal) setErrors((prev) => ({ ...prev, waistVal: "" }));
+                              }}
+                              placeholder="e.g. 32"
+                              className={`w-full pl-3 pr-8 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.waistVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                                }`}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-sm pointer-events-none select-none">
+                              &quot;
+                            </span>
+                          </div>
                           {errors.waistVal && (
                             <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -1591,18 +1634,25 @@ export default function AdminPage() {
                           <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
                             Length <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
-                            tabIndex={8}
-                            value={lengthVal}
-                            onChange={(e) => {
-                              setLengthVal(e.target.value);
-                              if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
-                            }}
-                            placeholder="e.g. 40"
-                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                              }`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              tabIndex={8}
+                              value={lengthVal}
+                              onChange={(e) => {
+                                const clean = sanitizeMeasurementInput(e.target.value);
+                                setLengthVal(clean);
+                                if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
+                              }}
+                              placeholder="e.g. 40"
+                              className={`w-full pl-3 pr-8 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                                }`}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-sm pointer-events-none select-none">
+                              &quot;
+                            </span>
+                          </div>
                           {errors.lengthVal && (
                             <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -1614,18 +1664,25 @@ export default function AdminPage() {
                           <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
                             Leg Opening <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
-                            tabIndex={9}
-                            value={legOpeningVal}
-                            onChange={(e) => {
-                              setLegOpeningVal(e.target.value);
-                              if (errors.legOpeningVal) setErrors((prev) => ({ ...prev, legOpeningVal: "" }));
-                            }}
-                            placeholder="e.g. 8"
-                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.legOpeningVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                              }`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              tabIndex={9}
+                              value={legOpeningVal}
+                              onChange={(e) => {
+                                const clean = sanitizeMeasurementInput(e.target.value);
+                                setLegOpeningVal(clean);
+                                if (errors.legOpeningVal) setErrors((prev) => ({ ...prev, legOpeningVal: "" }));
+                              }}
+                              placeholder="e.g. 8"
+                              className={`w-full pl-3 pr-8 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.legOpeningVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                                }`}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold text-sm pointer-events-none select-none">
+                              &quot;
+                            </span>
+                          </div>
                           {errors.legOpeningVal && (
                             <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                               <AlertCircle className="h-3.5 w-3.5 shrink-0" />

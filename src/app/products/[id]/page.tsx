@@ -165,14 +165,23 @@ export default function ProductDetailPage({ params }: PageProps) {
     setActiveImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
 
+  // Helper to format dimensions with inch unit if missing
+  const formatDimension = (label: string, val?: string) => {
+    if (!val) return "";
+    const trimmed = val.trim();
+    if (!trimmed) return "";
+    const hasUnit = trimmed.endsWith('"') || trimmed.toLowerCase().endsWith("in") || trimmed.endsWith("cm");
+    return `${label}: ${hasUnit ? trimmed : `${trimmed}"`}`;
+  };
+
   // Format measurements for clipboard & view
   const formattedMeasurements = product?.measurementsData?.notes
     ? product.measurementsData.notes
     : [
-        product?.measurementsData?.length ? `Length: ${product.measurementsData.length}` : "",
-        product?.measurementsData?.width ? `Width: ${product.measurementsData.width}` : "",
-        product?.measurementsData?.waist ? `Waist: ${product.measurementsData.waist}` : "",
-        product?.measurementsData?.legOpening ? `Leg Opening: ${product.measurementsData.legOpening}` : "",
+        formatDimension("Length", product?.measurementsData?.length),
+        formatDimension("Width", product?.measurementsData?.width),
+        formatDimension("Waist", product?.measurementsData?.waist),
+        formatDimension("Leg Opening", product?.measurementsData?.legOpening),
       ].filter(Boolean).join(" | ") || "N/A";
 
   const handleCopyOrderDetails = () => {
