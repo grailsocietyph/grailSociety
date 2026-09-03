@@ -248,7 +248,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       src={img}
                       alt={`Thumbnail ${idx + 1}`}
                       fill
-                      unoptimized
+                      sizes="80px"
                       className="object-cover object-center"
                     />
                   </button>
@@ -264,7 +264,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   src={productImages[activeImageIndex] || productImages[0]}
                   alt={product.title}
                   fill
-                  unoptimized
+                  priority
                   sizes="(max-width: 1024px) 100vw, 45vw"
                   className="object-cover object-center transition-transform duration-500"
                 />

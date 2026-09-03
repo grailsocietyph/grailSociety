@@ -11,11 +11,11 @@ interface CollectionItem {
 }
 
 const COLLECTIONS: CollectionItem[] = [
-  { id: "1", title: "T-shirts", slug: "t-shirts", image: "/collections/t-shirts.jpg" },
+  { id: "1", title: "T-shirts and Polos", slug: "t-shirts", image: "/collections/t-shirts.jpg" },
   { id: "2", title: "Hoodies", slug: "hoodies", image: "/collections/hoodies.jpg" },
   { id: "3", title: "Shorts", slug: "shorts", image: "/collections/shorts.jpg" },
   { id: "4", title: "Pants", slug: "pants", image: "/collections/pants.jpg" },
-  { id: "5", title: "Sweaters", slug: "sweaters", image: "/collections/sweaters.jpg" },
+  { id: "5", title: "Sweaters and Long Sleeves", slug: "sweaters", image: "/collections/sweaters.jpg" },
   { id: "6", title: "Jackets", slug: "jackets", image: "/collections/jackets.jpg" },
   { id: "7", title: "Bags", slug: "bags", image: "/collections/bags.jpg" },
   { id: "8", title: "Accessories", slug: "accessories", image: "/collections/accessories.jpg" },

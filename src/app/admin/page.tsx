@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useProducts, Product } from "@/context/ProductContext";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { useAnnouncement } from "@/context/AnnouncementContext";
+import { getCategoryLabel } from "@/lib/categories";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -762,9 +763,9 @@ export default function AdminPage() {
                   }`}
                 >
                   <option value="all" className="bg-white text-neutral-900 font-normal">All Categories</option>
-                  <option value="t-shirts" className="bg-white text-neutral-900 font-normal">T-Shirts</option>
+                  <option value="t-shirts" className="bg-white text-neutral-900 font-normal">T-shirts and Polos</option>
                   <option value="hoodies" className="bg-white text-neutral-900 font-normal">Hoodies</option>
-                  <option value="sweaters" className="bg-white text-neutral-900 font-normal">Sweaters</option>
+                  <option value="sweaters" className="bg-white text-neutral-900 font-normal">Sweaters and Long Sleeves</option>
                   <option value="jackets" className="bg-white text-neutral-900 font-normal">Jackets</option>
                   <option value="shorts" className="bg-white text-neutral-900 font-normal">Shorts</option>
                   <option value="pants" className="bg-white text-neutral-900 font-normal">Pants</option>
@@ -935,7 +936,7 @@ export default function AdminPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 font-medium text-neutral-900 max-w-xs truncate">{item.title}</td>
-                      <td className="py-3 px-4 text-neutral-600 capitalize">{item.collectionSlug}</td>
+                      <td className="py-3 px-4 text-neutral-600 capitalize">{getCategoryLabel(item.collectionSlug)}</td>
                       <td className="py-3 px-4 text-neutral-600">{item.tagSize || "N/A"}</td>
                       <td className="py-3 px-4 font-semibold text-neutral-900">{item.priceFormatted}</td>
                       <td className="py-3 px-4">
@@ -1031,7 +1032,7 @@ export default function AdminPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[10px] text-neutral-500 uppercase tracking-wider capitalize">
-                          {item.collectionSlug} • Size {item.tagSize || "N/A"}
+                          {getCategoryLabel(item.collectionSlug)} • Size {item.tagSize || "N/A"}
                         </span>
                         <span
                           className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase ${item.status === "published"
@@ -1335,6 +1336,7 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
+                      tabIndex={1}
                       required
                       value={title}
                       onChange={(e) => {
@@ -1361,6 +1363,7 @@ export default function AdminPage() {
                       </label>
                       <input
                         type="number"
+                        tabIndex={2}
                         step="any"
                         required
                         value={priceNum}
@@ -1385,6 +1388,7 @@ export default function AdminPage() {
                         Collection Category
                       </label>
                       <select
+                        tabIndex={3}
                         value={collectionSlug}
                         onChange={(e) => {
                           setCollectionSlug(e.target.value);
@@ -1394,9 +1398,9 @@ export default function AdminPage() {
                         }}
                         className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black transition-colors capitalize h-[46px]"
                       >
-                        <option value="t-shirts">T-Shirts</option>
+                        <option value="t-shirts">T-shirts and Polos</option>
                         <option value="hoodies">Hoodies</option>
-                        <option value="sweaters">Sweaters</option>
+                        <option value="sweaters">Sweaters and Long Sleeves</option>
                         <option value="jackets">Jackets</option>
                         <option value="shorts">Shorts</option>
                         <option value="pants">Pants</option>
@@ -1409,23 +1413,37 @@ export default function AdminPage() {
 
                   {/* Checkboxes */}
                   <div className="pt-2 flex items-center gap-6 border-t border-neutral-200/60 mt-4">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <label className="flex items-center gap-2 cursor-pointer select-none group">
                       <input
                         type="checkbox"
+                        tabIndex={4}
                         checked={isNewArrival}
                         onChange={(e) => setIsNewArrival(e.target.checked)}
-                        className="h-4 w-4 rounded border-neutral-300 accent-black cursor-pointer"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            setIsNewArrival((prev) => !prev);
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-neutral-300 accent-black cursor-pointer focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 outline-none"
                       />
-                      <span className="text-sm font-medium text-neutral-800">Mark as New Arrival</span>
+                      <span className="text-sm font-medium text-neutral-800 group-hover:text-black">Mark as New Arrival</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <label className="flex items-center gap-2 cursor-pointer select-none group">
                       <input
                         type="checkbox"
+                        tabIndex={5}
                         checked={isSoldOut}
                         onChange={(e) => setIsSoldOut(e.target.checked)}
-                        className="h-4 w-4 rounded border-neutral-300 accent-black cursor-pointer"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            setIsSoldOut((prev) => !prev);
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-neutral-300 accent-black cursor-pointer focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 outline-none"
                       />
-                      <span className="text-sm font-medium text-neutral-800">Sold Out</span>
+                      <span className="text-sm font-medium text-neutral-800 group-hover:text-black">Sold Out</span>
                     </label>
                   </div>
                 </div>
@@ -1436,231 +1454,245 @@ export default function AdminPage() {
                     Thrift Specifications
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Tag Size with N/A option */}
-                    {!isBagsOrAccessories && (
-                      <div>
-                        <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
-                          {isShoes ? "Shoe Size *" : "Tag Size *"}
-                        </label>
-                        {isShoes ? (
+                  {/* 1. Tag Size */}
+                  {!isBagsOrAccessories && (
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
+                        {isShoes ? "Shoe Size *" : "Tag Size *"}
+                      </label>
+                      {isShoes ? (
+                        <input
+                          type="text"
+                          tabIndex={6}
+                          value={tagSize}
+                          onChange={(e) => {
+                            setTagSize(e.target.value);
+                            if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
+                          }}
+                          placeholder="e.g. US 9 / EU 42 or N/A"
+                          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
+                        />
+                      ) : (
+                        <select
+                          tabIndex={6}
+                          value={tagSize}
+                          onChange={(e) => {
+                            setTagSize(e.target.value);
+                            if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
+                          }}
+                          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
+                        >
+                          <option value="N/A">N/A</option>
+                          <option value="One Size">One Size</option>
+                          <option value="XS">XS (Extra Small)</option>
+                          <option value="S">S (Small)</option>
+                          <option value="M">M (Medium)</option>
+                          <option value="L">L (Large)</option>
+                          <option value="XL">XL (Extra Large)</option>
+                          <option value="XXL">XXL (Double XL)</option>
+                        </select>
+                      )}
+                      {errors.tagSize && (
+                        <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>{errors.tagSize}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 2. Measurements Section */}
+                  <div className="space-y-2 pt-1 border-t border-neutral-200/60">
+                    <label className="block text-xs font-semibold text-neutral-800 uppercase">
+                      Measurements
+                    </label>
+
+                    {/* Conditional Top/Outerwear Measurements */}
+                    {isTopOrOuterwear && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                            Length <span className="text-red-500">*</span>
+                          </label>
                           <input
                             type="text"
-                            value={tagSize}
+                            tabIndex={7}
+                            value={lengthVal}
                             onChange={(e) => {
-                              setTagSize(e.target.value);
-                              if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
+                              setLengthVal(e.target.value);
+                              if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
                             }}
-                            placeholder="e.g. US 9 / EU 42 or N/A"
-                            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            placeholder="e.g. 25"
+                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
                               }`}
                           />
-                        ) : (
-                          <select
-                            value={tagSize}
+                          {errors.lengthVal && (
+                            <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span>{errors.lengthVal}</span>
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                            Width <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            tabIndex={8}
+                            value={widthVal}
                             onChange={(e) => {
-                              setTagSize(e.target.value);
-                              if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
+                              setWidthVal(e.target.value);
+                              if (errors.widthVal) setErrors((prev) => ({ ...prev, widthVal: "" }));
                             }}
-                            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            placeholder="e.g. 33"
+                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.widthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
                               }`}
-                          >
-                            <option value="N/A">N/A</option>
-                            <option value="One Size">One Size</option>
-                            <option value="XS">XS (Extra Small)</option>
-                            <option value="S">S (Small)</option>
-                            <option value="M">M (Medium)</option>
-                            <option value="L">L (Large)</option>
-                            <option value="XL">XL (Extra Large)</option>
-                            <option value="XXL">XXL (Double XL)</option>
-                          </select>
-                        )}
-                        {errors.tagSize && (
+                          />
+                          {errors.widthVal && (
+                            <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span>{errors.widthVal}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Conditional Bottoms Measurements */}
+                    {isBottoms && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                            Waist <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            tabIndex={7}
+                            value={waistVal}
+                            onChange={(e) => {
+                              setWaistVal(e.target.value);
+                              if (errors.waistVal) setErrors((prev) => ({ ...prev, waistVal: "" }));
+                            }}
+                            placeholder="e.g. 32"
+                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.waistVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                              }`}
+                          />
+                          {errors.waistVal && (
+                            <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span>{errors.waistVal}</span>
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                            Length <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            tabIndex={8}
+                            value={lengthVal}
+                            onChange={(e) => {
+                              setLengthVal(e.target.value);
+                              if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
+                            }}
+                            placeholder="e.g. 40"
+                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                              }`}
+                          />
+                          {errors.lengthVal && (
+                            <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span>{errors.lengthVal}</span>
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                            Leg Opening <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            tabIndex={9}
+                            value={legOpeningVal}
+                            onChange={(e) => {
+                              setLegOpeningVal(e.target.value);
+                              if (errors.legOpeningVal) setErrors((prev) => ({ ...prev, legOpeningVal: "" }));
+                            }}
+                            placeholder="e.g. 8"
+                            className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.legOpeningVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                              }`}
+                          />
+                          {errors.legOpeningVal && (
+                            <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span>{errors.legOpeningVal}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Conditional Notes for Bags/Accessories/Shoes */}
+                    {(isBagsOrAccessories || isShoes) && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                          Details / Notes <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          tabIndex={7}
+                          value={notesVal}
+                          onChange={(e) => {
+                            setNotesVal(e.target.value);
+                            if (errors.notesVal) setErrors((prev) => ({ ...prev, notesVal: "" }));
+                          }}
+                          placeholder={
+                            isShoes
+                              ? "e.g. Includes original box, minor scuff on left toe..."
+                              : "e.g. Adjustable strap, brass hardware, inside pocket..."
+                          }
+                          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors resize-y min-h-[90px] ${errors.notesVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
+                        />
+                        {errors.notesVal && (
                           <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{errors.tagSize}</span>
+                            <span>{errors.notesVal}</span>
                           </p>
                         )}
                       </div>
                     )}
-
-                    {/* Condition Field */}
-                    <div className={isBagsOrAccessories ? "sm:col-span-2" : ""}>
-                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
-                        Condition <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={condition}
-                        onChange={(e) => {
-                          setCondition(e.target.value);
-                          if (errors.condition) setErrors((prev) => ({ ...prev, condition: "" }));
-                        }}
-                        placeholder="e.g. 9/10 No Issue"
-                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
-                      />
-                      {errors.condition && (
-                        <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                          <span>{errors.condition}</span>
-                        </p>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Conditional Top/Outerwear Measurements */}
-                  {isTopOrOuterwear && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-neutral-800 uppercase mb-1">
-                          Length <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={lengthVal}
-                          onChange={(e) => {
-                            setLengthVal(e.target.value);
-                            if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
-                          }}
-                          placeholder="e.g. 25"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
-                        />
-                        {errors.lengthVal && (
-                          <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{errors.lengthVal}</span>
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-neutral-800 uppercase mb-1">
-                          Width <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={widthVal}
-                          onChange={(e) => {
-                            setWidthVal(e.target.value);
-                            if (errors.widthVal) setErrors((prev) => ({ ...prev, widthVal: "" }));
-                          }}
-                          placeholder="e.g. 33"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.widthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
-                        />
-                        {errors.widthVal && (
-                          <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{errors.widthVal}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {/* 3. Condition Field */}
+                  <div className="pt-1 border-t border-neutral-200/60">
+                    <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
+                      Condition <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      tabIndex={10}
+                      value={condition}
+                      onChange={(e) => {
+                        setCondition(e.target.value);
+                        if (errors.condition) setErrors((prev) => ({ ...prev, condition: "" }));
+                      }}
+                      placeholder="e.g. 9/10 No Issue"
+                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                        }`}
+                    />
+                    {errors.condition && (
+                      <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{errors.condition}</span>
+                      </p>
+                    )}
+                  </div>
 
-                  {/* Conditional Bottoms Measurements */}
-                  {isBottoms && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-neutral-800 uppercase mb-1">
-                          Waist <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={waistVal}
-                          onChange={(e) => {
-                            setWaistVal(e.target.value);
-                            if (errors.waistVal) setErrors((prev) => ({ ...prev, waistVal: "" }));
-                          }}
-                          placeholder="e.g. 32"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.waistVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
-                        />
-                        {errors.waistVal && (
-                          <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{errors.waistVal}</span>
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-neutral-800 uppercase mb-1">
-                          Length <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={lengthVal}
-                          onChange={(e) => {
-                            setLengthVal(e.target.value);
-                            if (errors.lengthVal) setErrors((prev) => ({ ...prev, lengthVal: "" }));
-                          }}
-                          placeholder="e.g. 40"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.lengthVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
-                        />
-                        {errors.lengthVal && (
-                          <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{errors.lengthVal}</span>
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-neutral-800 uppercase mb-1">
-                          Leg Opening <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={legOpeningVal}
-                          onChange={(e) => {
-                            setLegOpeningVal(e.target.value);
-                            if (errors.legOpeningVal) setErrors((prev) => ({ ...prev, legOpeningVal: "" }));
-                          }}
-                          placeholder="e.g. 8"
-                          className={`w-full px-3 py-2.5 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.legOpeningVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
-                        />
-                        {errors.legOpeningVal && (
-                          <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{errors.legOpeningVal}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Conditional Notes for Bags/Accessories/Shoes */}
-                  {(isBagsOrAccessories || isShoes) && (
-                    <div>
-                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
-                        Details / Notes <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        value={notesVal}
-                        onChange={(e) => {
-                          setNotesVal(e.target.value);
-                          if (errors.notesVal) setErrors((prev) => ({ ...prev, notesVal: "" }));
-                        }}
-                        placeholder={
-                          isShoes
-                            ? "e.g. Includes original box, minor scuff on left toe..."
-                            : "e.g. Adjustable strap, brass hardware, inside pocket..."
-                        }
-                        className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors resize-y min-h-[90px] ${errors.notesVal ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                          }`}
-                      />
-                      {errors.notesVal && (
-                        <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                          <span>{errors.notesVal}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Optional Issue Field for All Categories */}
+                  {/* 4. Issue Field */}
                   <div>
                     <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5 flex items-center justify-between">
                       <span>Issue</span>
@@ -1668,6 +1700,7 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
+                      tabIndex={11}
                       value={issue}
                       onChange={(e) => setIssue(e.target.value)}
                       placeholder="e.g. Small pinhole on lower hem, minor fading, none"
@@ -1694,7 +1727,16 @@ export default function AdminPage() {
                   )}
 
                   {/* Upload Button Box */}
-                  <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-5 sm:p-6 cursor-pointer transition-colors bg-white ${errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
+                  <label
+                    tabIndex={12}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        const fileInput = document.getElementById("admin-file-upload") as HTMLInputElement;
+                        if (fileInput) fileInput.click();
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-5 sm:p-6 cursor-pointer transition-colors bg-white focus-visible:ring-2 focus-visible:ring-black outline-none ${errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
                     }`}>
                     {uploadingCount > 0 ? (
                       <div className="flex flex-col items-center gap-2 text-neutral-600">
@@ -1709,6 +1751,7 @@ export default function AdminPage() {
                       </>
                     )}
                     <input
+                      id="admin-file-upload"
                       type="file"
                       multiple
                       accept="image/*"

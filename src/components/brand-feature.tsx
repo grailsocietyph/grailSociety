@@ -14,7 +14,7 @@ export default function BrandFeature() {
             src="/brand-image.jpg"
             alt="Grail Society Collection"
             fill
-            unoptimized
+            loading="lazy"
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover object-center"
           />

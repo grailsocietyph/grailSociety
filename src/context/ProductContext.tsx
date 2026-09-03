@@ -62,13 +62,30 @@ async function deleteImagesFromR2(imageUrls: string[]) {
 }
 
 export function ProductProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("grail_society_products_cache");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to parse cached products", e);
+      }
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial && products.length === 0) {
+        setLoading(true);
+      }
       setError(null);
 
       const { data, error: sbError } = await supabase
@@ -100,24 +117,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [products.length]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("grail_society_products_cache");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setProducts(parsed);
-          }
-        } catch (e) {
-          console.error("Failed to parse cached products", e);
-        }
-      }
-    }
-
-    fetchProducts();
+    fetchProducts(true);
 
     // Supabase Realtime Subscription for automatic multi-tab/device syncing
     const channel = supabase

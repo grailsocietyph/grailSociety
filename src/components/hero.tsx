@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 interface HeroProps {
   backgroundImageUrl?: string;
@@ -13,19 +14,24 @@ export default function Hero({
 }: HeroProps) {
   return (
     <section className="relative w-full h-[640px] sm:h-[720px] lg:h-[82vh] overflow-hidden bg-neutral-900 font-helvetica">
-      {/* Background Image Container */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 hover:scale-105"
-        style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
-      >
+      {/* Background Image Container using optimized Next Image with priority */}
+      <div className="absolute inset-0">
+        <Image
+          src={backgroundImageUrl}
+          alt="Streetwear Collection Hero"
+          fill
+          priority
+          quality={85}
+          sizes="100vw"
+          className="object-cover object-center transition-transform duration-700 hover:scale-105"
+        />
         {/* Subtle Contrast Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent z-10 pointer-events-none" />
       </div>
 
-      {/* Hero Content Overlay (Aligned to match Image 2) */}
-      <div className="relative h-full w-full mx-auto max-w-360 px-6 sm:px-12 flex flex-col justify-center items-start pt-16 sm:pt-20">
+      {/* Hero Content Overlay */}
+      <div className="relative z-20 h-full w-full mx-auto max-w-360 px-6 sm:px-12 flex flex-col justify-center items-start pt-16 sm:pt-20">
         <div className="max-w-xl">
-          
           <span className="text-xs sm:text-sm font-bold tracking-[0.2em] uppercase text-neutral-200 mb-2 block drop-shadow-sm">
             CURATED DROPS
           </span>
@@ -44,7 +50,6 @@ export default function Hero({
           >
             {buttonText}
           </Link>
-
         </div>
       </div>
     </section>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useProducts, Product } from "@/context/ProductContext";
+import { getCategoryLabel } from "@/lib/categories";
 import { 
   LayoutGrid, 
   Grid3X3,
@@ -34,11 +35,8 @@ export default function CollectionDetailPage({ params }: PageProps) {
   const collectionSlug = resolvedParams.slug;
   const { products, loading } = useProducts();
 
-  // Format title nicely from slug (e.g., "t-shirts" -> "T-Shirts")
-  const collectionTitle = collectionSlug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  // Format title nicely from slug (e.g., "t-shirts" -> "T-shirts and Polos", "sweaters" -> "Sweaters and Long Sleeves")
+  const collectionTitle = getCategoryLabel(collectionSlug);
 
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
   const [inStockChecked, setInStockChecked] = useState(true);
@@ -50,9 +48,15 @@ export default function CollectionDetailPage({ params }: PageProps) {
 
   // Filter products matching the current collection slug and published status
   const publishedCollectionProducts = useMemo(() => {
-    return products.filter(
-      (p) => p.status === "published" && p.collectionSlug.toLowerCase() === collectionSlug.toLowerCase()
-    );
+    const norm = collectionSlug.toLowerCase().trim();
+    return products.filter((p) => {
+      if (p.status !== "published") return false;
+      const pSlug = (p.collectionSlug || "").toLowerCase().trim();
+      if (pSlug === norm) return true;
+      if ((norm === "t-shirts" || norm === "t-shirts-and-polos") && (pSlug === "t-shirts" || pSlug === "t-shirts-and-polos")) return true;
+      if ((norm === "sweaters" || norm === "sweaters-and-long-sleeves") && (pSlug === "sweaters" || pSlug === "sweaters-and-long-sleeves")) return true;
+      return false;
+    });
   }, [products, collectionSlug]);
 
   const filteredProducts = useMemo(() => {
@@ -374,7 +378,6 @@ function ProductCard({ product }: { product: Product }) {
           src={images[currentImageIndex]}
           alt={product.title}
           fill
-          unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover object-center transition-transform duration-200 ease-out group-hover/card:scale-105"
         />

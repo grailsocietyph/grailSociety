@@ -72,8 +72,8 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
           src={primaryImage}
           alt={product.title}
           fill
-          unoptimized
-          sizes="(max-width: 768px) 100vw, 33vw"
+          priority={isHero}
+          sizes={isHero ? "(max-width: 768px) 100vw, 33vw" : "(max-width: 768px) 50vw, 33vw"}
           className={`object-cover object-center transition-all duration-200 ease-out group-hover/card:scale-105 ${
             hasSecondary ? "group-hover/card:opacity-0" : ""
           }`}
@@ -85,8 +85,7 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
             src={secondaryImage}
             alt={`${product.title} alternate view`}
             fill
-            unoptimized
-            sizes="(max-width: 768px) 100vw, 33vw"
+            sizes="(max-width: 768px) 50vw, 33vw"
             className="object-cover object-center opacity-0 transition-all duration-200 ease-out group-hover/card:opacity-100 group-hover/card:scale-105"
           />
         )}

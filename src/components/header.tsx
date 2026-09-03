@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, Menu, X, ArrowRight } from "lucide-react";
 import { useAnnouncement } from "@/context/AnnouncementContext";
 import { useProducts } from "@/context/ProductContext";
+import { getCategoryLabel } from "@/lib/categories";
 
 export default function Header() {
   const { announcement } = useAnnouncement();
@@ -337,7 +338,7 @@ export default function Header() {
                             </p>
                             <div className="flex items-center gap-2 mt-0.5 text-[11px] text-neutral-500">
                               {item.collectionSlug && (
-                                <span className="capitalize">{item.collectionSlug}</span>
+                                <span>{getCategoryLabel(item.collectionSlug)}</span>
                               )}
                               {item.collectionSlug && item.tagSize && <span>•</span>}
                               {item.tagSize && (
