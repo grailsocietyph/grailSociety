@@ -79,3 +79,49 @@ export function mapProductToDbProduct(product: Partial<Product>): Partial<DbProd
 
   return dbItem;
 }
+
+export interface DbAdminUser {
+  id: string;
+  username: string;
+  email?: string;
+  full_name: string;
+  password_hash: string;
+  role: "owner" | "admin";
+  is_active: boolean;
+  last_login_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email?: string;
+  fullName: string;
+  role: "owner" | "admin";
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt?: string;
+}
+
+export function mapDbAdminUserToAdminUser(row: DbAdminUser): AdminUser {
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email || undefined,
+    fullName: row.full_name || row.username,
+    role: (row.role === "owner" || (row.role as any) === "superadmin") ? "owner" : "admin",
+    isActive: row.is_active !== false,
+    lastLoginAt: row.last_login_at || undefined,
+    createdAt: row.created_at || undefined,
+  };
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+

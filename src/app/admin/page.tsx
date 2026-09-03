@@ -33,6 +33,7 @@ import {
   Megaphone,
   Check,
   Eye,
+  EyeOff,
   ShoppingBag,
   Copy,
   Gift,
@@ -44,6 +45,10 @@ import {
   ListOrdered,
   LayoutGrid,
   Grid3X3,
+  Users,
+  UserPlus,
+  Shield,
+  Key,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -59,7 +64,17 @@ export default function AdminPage() {
     reorderProducts,
     refreshProducts,
   } = useProducts();
-  const { isAuthenticated, isAuthLoaded, logout } = useAdminAuth();
+  const {
+    currentUser,
+    isAuthenticated,
+    isAuthLoaded,
+    adminUsers,
+    logout,
+    createAdminAccount,
+    updateAdminAccount,
+    deleteAdminAccount,
+    refreshAdminUsers,
+  } = useAdminAuth();
   const { announcement, updateAnnouncement, deleteAnnouncement } = useAnnouncement();
   const router = useRouter();
 
@@ -69,6 +84,21 @@ export default function AdminPage() {
       router.push("/admin/login");
     }
   }, [isAuthLoaded, isAuthenticated, router]);
+
+  // Team / Admin Accounts Management Modal state
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [adminModalTab, setAdminModalTab] = useState<"list" | "create" | "edit">("list");
+  const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
+  const [adminFormUsername, setAdminFormUsername] = useState("");
+  const [adminFormFullName, setAdminFormFullName] = useState("");
+  const [adminFormEmail, setAdminFormEmail] = useState("");
+  const [adminFormRole, setAdminFormRole] = useState<"owner" | "admin">("admin");
+  const [adminFormPassword, setAdminFormPassword] = useState("");
+  const [adminFormActive, setAdminFormActive] = useState(true);
+  const [adminFormError, setAdminFormError] = useState<string | null>(null);
+  const [adminFormSuccess, setAdminFormSuccess] = useState<string | null>(null);
+  const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -311,6 +341,99 @@ export default function AdminPage() {
       console.error("Failed to save product order:", err);
     } finally {
       setIsSavingReorder(false);
+    }
+  };
+
+  // Team Admin Account Handlers
+  const openCreateAdmin = () => {
+    setAdminFormUsername("");
+    setAdminFormFullName("");
+    setAdminFormEmail("");
+    setAdminFormRole("admin");
+    setAdminFormPassword("");
+    setAdminFormActive(true);
+    setAdminFormError(null);
+    setAdminFormSuccess(null);
+    setShowAdminPassword(false);
+    setAdminModalTab("create");
+  };
+
+  const openEditAdmin = (admin: any) => {
+    setSelectedAdminId(admin.id);
+    setAdminFormUsername(admin.username);
+    setAdminFormFullName(admin.fullName);
+    setAdminFormEmail(admin.email || "");
+    setAdminFormRole(admin.role === "owner" ? "owner" : "admin");
+    setAdminFormPassword("");
+    setAdminFormActive(admin.isActive !== false);
+    setAdminFormError(null);
+    setAdminFormSuccess(null);
+    setShowAdminPassword(false);
+    setAdminModalTab("edit");
+  };
+
+  const handleSaveAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminFormError(null);
+    setAdminFormSuccess(null);
+    setIsAdminSubmitting(true);
+
+    try {
+      if (adminModalTab === "create") {
+        const res = await createAdminAccount({
+          username: adminFormUsername,
+          fullName: adminFormFullName,
+          email: adminFormEmail || undefined,
+          role: adminFormRole,
+          password: adminFormPassword,
+        });
+
+        if (res.success) {
+          setAdminFormSuccess("Admin account created successfully!");
+          setTimeout(() => {
+            setAdminModalTab("list");
+            setAdminFormSuccess(null);
+          }, 900);
+        } else {
+          setAdminFormError(res.error || "Failed to create admin account.");
+        }
+      } else if (adminModalTab === "edit" && selectedAdminId) {
+        const res = await updateAdminAccount(selectedAdminId, {
+          username: adminFormUsername,
+          fullName: adminFormFullName,
+          email: adminFormEmail || undefined,
+          role: adminFormRole,
+          isActive: adminFormActive,
+          password: adminFormPassword.trim() ? adminFormPassword.trim() : undefined,
+        });
+
+        if (res.success) {
+          setAdminFormSuccess("Admin account updated successfully!");
+          setTimeout(() => {
+            setAdminModalTab("list");
+            setAdminFormSuccess(null);
+          }, 900);
+        } else {
+          setAdminFormError(res.error || "Failed to update admin account.");
+        }
+      }
+    } catch (err: any) {
+      setAdminFormError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsAdminSubmitting(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (admin: any) => {
+    if (currentUser?.id === admin.id) {
+      alert("You cannot delete your own active admin account.");
+      return;
+    }
+    if (confirm(`Are you sure you want to delete admin account "${admin.fullName}" (@${admin.username})?`)) {
+      const res = await deleteAdminAccount(admin.id);
+      if (!res.success) {
+        alert(res.error || "Failed to delete admin account.");
+      }
     }
   };
 
@@ -743,6 +866,35 @@ export default function AdminPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Logged in User Profile Info */}
+            <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 bg-neutral-800/90 border border-neutral-700/80 rounded-xl">
+              <div className="w-6 h-6 rounded-full bg-white text-black font-black text-xs flex items-center justify-center shrink-0 uppercase shadow-xs">
+                {(currentUser?.fullName || currentUser?.username || "A").charAt(0)}
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-white truncate max-w-[100px] sm:max-w-[130px]">
+                  {currentUser?.fullName || currentUser?.username || "Admin"}
+                </span>
+                <span className="text-[9px] uppercase font-bold text-amber-400">
+                  {currentUser?.role === "owner" ? "Owner" : "Admin"}
+                </span>
+              </div>
+            </div>
+
+            {/* Team Accounts Button */}
+            <button
+              onClick={() => {
+                refreshAdminUsers();
+                setAdminModalTab("list");
+                setIsAdminModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-neutral-200 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-2.5 sm:px-3.5 py-2 rounded-xl border border-neutral-700/60 cursor-pointer"
+              title="Manage Admin Team Accounts"
+            >
+              <Users className="h-3.5 w-3.5 text-neutral-400" />
+              <span className="hidden sm:inline">Team Accounts</span>
+            </button>
+
             <button
               onClick={() => refreshProducts()}
               className="flex items-center gap-1.5 text-xs font-semibold text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-2.5 sm:px-3 py-2 rounded-xl border border-neutral-700/60 cursor-pointer"
@@ -2611,6 +2763,369 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team / Admin Accounts Management Modal */}
+      {isAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-neutral-200 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-black text-white rounded-xl">
+                  <Shield className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-neutral-900">
+                    Admin Team Management
+                  </h2>
+                  <p className="text-xs text-neutral-500">
+                    Manage accounts and credentials. Both Owner and Admin roles have equal full access.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAdminModalOpen(false)}
+                className="p-2 text-neutral-400 hover:text-black rounded-xl hover:bg-neutral-200/60 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              {adminModalTab === "list" ? (
+                /* ACCOUNTS LIST VIEW */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-600">
+                        Registered Accounts ({adminUsers.length || 1})
+                      </h3>
+                      <p className="text-[11px] text-neutral-400">
+                        Each admin has their own designated username and password.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openCreateAdmin}
+                      className="px-3.5 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-neutral-800 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                      <span>Add Admin</span>
+                    </button>
+                  </div>
+
+                  {/* Accounts Cards List */}
+                  <div className="space-y-2.5">
+                    {adminUsers.length > 0 ? (
+                      adminUsers.map((admin) => {
+                        const isCurrent = currentUser?.id === admin.id;
+                        return (
+                          <div
+                            key={admin.id}
+                            className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                              isCurrent
+                                ? "bg-amber-50/50 border-amber-300"
+                                : "bg-neutral-50/80 border-neutral-200 hover:bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0 shadow-2xs ${
+                                  admin.role === "owner"
+                                    ? "bg-black text-amber-400"
+                                    : "bg-neutral-900 text-white"
+                                }`}
+                              >
+                                {admin.fullName.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-neutral-900 truncate">
+                                    {admin.fullName}
+                                  </h4>
+                                  {isCurrent && (
+                                    <span className="bg-amber-400 text-black text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shrink-0">
+                                      You
+                                    </span>
+                                  )}
+                                  <span
+                                    className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                      admin.role === "owner"
+                                        ? "bg-amber-100 text-amber-900 border border-amber-300 font-black"
+                                        : "bg-neutral-200 text-neutral-800"
+                                    }`}
+                                  >
+                                    {admin.role === "owner" ? "Owner" : "Admin"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5 text-xs text-neutral-500">
+                                  <span className="font-semibold text-neutral-700">@{admin.username}</span>
+                                  {admin.email && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="truncate">{admin.email}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-neutral-400 mt-1">
+                                  {admin.lastLoginAt
+                                    ? `Last login: ${new Date(admin.lastLoginAt).toLocaleString()}`
+                                    : "Never logged in yet"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-neutral-200/60 w-full sm:w-auto justify-end">
+                              <button
+                                type="button"
+                                onClick={() => openEditAdmin(admin)}
+                                className="px-3 py-1.5 rounded-lg bg-white border border-neutral-300 hover:bg-neutral-100 text-xs font-semibold text-neutral-800 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                              >
+                                <Edit className="h-3 w-3" />
+                                <span>Edit / Password</span>
+                              </button>
+                              {!isCurrent && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAdmin(admin)}
+                                  className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                                  title="Delete Admin Account"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-300 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-black text-amber-400 flex items-center justify-center font-black text-sm uppercase shrink-0">
+                            A
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-neutral-900">
+                                Main Admin
+                              </h4>
+                              <span className="bg-amber-400 text-black text-[9px] font-black uppercase px-1.5 py-0.5 rounded">
+                                Default Master
+                              </span>
+                            </div>
+                            <p className="text-xs text-neutral-600">@admin • admin@grailsociety.com</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* CREATE / EDIT FORM VIEW */
+                <form onSubmit={handleSaveAdminUser} className="space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-neutral-200">
+                    <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                      <Key className="h-4 w-4 text-neutral-600" />
+                      <span>
+                        {adminModalTab === "create"
+                          ? "Add New Admin Account"
+                          : `Edit Account: @${adminFormUsername}`}
+                      </span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminModalTab("list");
+                        setAdminFormError(null);
+                        setAdminFormSuccess(null);
+                      }}
+                      className="text-xs font-semibold text-neutral-500 hover:text-black cursor-pointer"
+                    >
+                      ← Back to Accounts
+                    </button>
+                  </div>
+
+                  {adminFormError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 font-medium animate-in fade-in">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+                      <span>{adminFormError}</span>
+                    </div>
+                  )}
+
+                  {adminFormSuccess && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-700 font-medium animate-in fade-in">
+                      <Check className="h-4 w-4 shrink-0 text-emerald-500 stroke-[3]" />
+                      <span>{adminFormSuccess}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={adminFormFullName}
+                        onChange={(e) => setAdminFormFullName(e.target.value)}
+                        placeholder="e.g. Sam Johnson"
+                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black focus:bg-white transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
+                        Username <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={adminFormUsername}
+                        onChange={(e) => setAdminFormUsername(e.target.value)}
+                        placeholder="e.g. sam"
+                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black focus:bg-white transition-colors lowercase"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5 flex items-center justify-between">
+                        <span>Email Address</span>
+                        <span className="text-[10px] text-neutral-400 font-normal lowercase">optional</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={adminFormEmail}
+                        onChange={(e) => setAdminFormEmail(e.target.value)}
+                        placeholder="e.g. sam@grailsociety.com"
+                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black focus:bg-white transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
+                        Access Role
+                      </label>
+                      <select
+                        value={adminFormRole}
+                        onChange={(e: any) => setAdminFormRole(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black focus:bg-white transition-colors h-[42px]"
+                      >
+                        <option value="owner">Owner</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5 flex items-center justify-between">
+                      <span>
+                        {adminModalTab === "create" ? "Account Password" : "New Password"}
+                        {adminModalTab === "create" && <span className="text-red-500 ml-0.5">*</span>}
+                      </span>
+                      {adminModalTab === "edit" && (
+                        <span className="text-[10px] text-neutral-400 font-normal lowercase">
+                          leave blank to keep current password
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showAdminPassword ? "text" : "password"}
+                        required={adminModalTab === "create"}
+                        value={adminFormPassword}
+                        onChange={(e) => setAdminFormPassword(e.target.value)}
+                        placeholder={
+                          adminModalTab === "create"
+                            ? "Set secure password (min 6 chars)..."
+                            : "Enter new password to reset..."
+                        }
+                        className="w-full pl-4 pr-11 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black focus:bg-white transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPassword(!showAdminPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors cursor-pointer"
+                        title={showAdminPassword ? "Hide password" : "Show password"}
+                      >
+                        {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Toggle for Edit Mode */}
+                  {adminModalTab === "edit" && (
+                    <div className="pt-2">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={adminFormActive}
+                          onChange={(e) => setAdminFormActive(e.target.checked)}
+                          className="h-4 w-4 rounded border-neutral-300 accent-black cursor-pointer"
+                        />
+                        <span className="text-xs font-semibold text-neutral-800">
+                          Account Active (uncheck to disable access)
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Submit Actions */}
+                  <div className="pt-4 flex items-center justify-end gap-2 border-t border-neutral-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminModalTab("list");
+                        setAdminFormError(null);
+                      }}
+                      className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-black rounded-xl cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isAdminSubmitting}
+                      className="px-5 py-2.5 bg-black text-white text-xs font-bold rounded-xl hover:bg-neutral-800 disabled:opacity-50 transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      {isAdminSubmitting ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Saving Account...</span>
+                        </>
+                      ) : (
+                        <span>
+                          {adminModalTab === "create" ? "Create Admin Account" : "Update Account"}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Modal Sticky Footer for List View */}
+            {adminModalTab === "list" && (
+              <div className="p-4 sm:px-6 border-t border-neutral-200 bg-neutral-50 flex items-center justify-between shrink-0">
+                <p className="text-[11px] text-neutral-500">
+                  Both Owner and Admin have equal full access. Sign in with unique username or email.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminModalOpen(false)}
+                  className="px-5 py-2 bg-neutral-200 text-neutral-800 hover:bg-neutral-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

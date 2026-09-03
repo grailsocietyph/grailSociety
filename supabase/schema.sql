@@ -93,3 +93,45 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.announcements;
   END IF;
 END $$;
+
+-- 7. Create Admin Users Table
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE,
+  full_name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin', -- 'owner' | 'admin'
+  is_active BOOLEAN DEFAULT true,
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Index for username and email lookup
+CREATE INDEX IF NOT EXISTS idx_admin_users_username ON public.admin_users(username);
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
+
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read admin_users" ON public.admin_users;
+DROP POLICY IF EXISTS "Public insert admin_users" ON public.admin_users;
+DROP POLICY IF EXISTS "Public update admin_users" ON public.admin_users;
+DROP POLICY IF EXISTS "Public delete admin_users" ON public.admin_users;
+
+CREATE POLICY "Public read admin_users" ON public.admin_users FOR SELECT USING (true);
+CREATE POLICY "Public insert admin_users" ON public.admin_users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public update admin_users" ON public.admin_users FOR UPDATE USING (true);
+CREATE POLICY "Public delete admin_users" ON public.admin_users FOR DELETE USING (true);
+
+-- Enable Realtime for admin_users table
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'admin_users'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_users;
+  END IF;
+END $$;
+
