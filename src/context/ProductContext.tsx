@@ -17,9 +17,13 @@ export interface Product {
     legOpening?: string;
     notes?: string;
     issue?: string;
+    modelHeight?: string;
+    modelWeight?: string;
   };
   condition: string;
   issue?: string;
+  modelHeight?: string;
+  modelWeight?: string;
   images: string[];
   isNewArrival: boolean;
   status: "draft" | "published";

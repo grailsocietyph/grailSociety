@@ -251,13 +251,21 @@ export default function ProductDetailPage({ params }: PageProps) {
     const productUrl = typeof window !== "undefined" ? window.location.href : "";
     
     const issueText = (product.issue || product.measurementsData?.issue)?.trim();
+    const modelHeightVal = (product.modelHeight || product.measurementsData?.modelHeight)?.trim();
+    const modelWeightVal = (product.modelWeight || product.measurementsData?.modelWeight)?.trim();
+    const modelDetailsSummary = [
+      modelHeightVal ? `Height: ${modelHeightVal}` : "",
+      modelWeightVal ? `Weight: ${modelWeightVal}kg` : "",
+    ].filter(Boolean).join(" | ");
+
     const orderText = `ORDER INQUIRY - GRAIL SOCIETY\n` +
       `• Item: ${product.title}\n` +
       `• Price: ${product.priceFormatted}\n` +
       `• Tag Size: ${product.tagSize || "N/A"}\n` +
       `• Measurements: ${formattedMeasurements}\n` +
       `• Condition: ${product.condition || "N/A"}\n` +
-      (issueText ? `• Issue: ${issueText}\n\n` : `\n`) +
+      (issueText ? `• Issue: ${issueText}\n` : "") +
+      (modelDetailsSummary ? `• Model Details: ${modelDetailsSummary}\n\n` : `\n`) +
       `Product Link: ${productUrl}\n\n` +
       `Image Link: ${mainImageUrl || "No image uploaded"}`;
 
@@ -426,6 +434,19 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <p><span className="font-semibold text-neutral-900">Condition:</span> {product.condition || "N/A"}</p>
                 {Boolean(product.issue || product.measurementsData?.issue) && (
                   <p><span className="font-semibold text-neutral-900">Issue:</span> {product.issue || product.measurementsData?.issue}</p>
+                )}
+                {Boolean(product.modelHeight || product.measurementsData?.modelHeight || product.modelWeight || product.measurementsData?.modelWeight) && (
+                  <p>
+                    <span className="font-semibold text-neutral-900">Model:</span>{" "}
+                    {[
+                      (product.modelHeight || product.measurementsData?.modelHeight)?.trim()
+                        ? `Height: ${(product.modelHeight || product.measurementsData?.modelHeight)?.trim()}`
+                        : "",
+                      (product.modelWeight || product.measurementsData?.modelWeight)?.trim()
+                        ? `Weight: ${(product.modelWeight || product.measurementsData?.modelWeight)?.trim()}kg`
+                        : "",
+                    ].filter(Boolean).join(" | ")}
+                  </p>
                 )}
               </div>
 

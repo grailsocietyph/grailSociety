@@ -168,6 +168,8 @@ export default function AdminPage() {
 
   const [condition, setCondition] = useState("Excellent");
   const [issue, setIssue] = useState("");
+  const [modelHeight, setModelHeight] = useState("");
+  const [modelWeight, setModelWeight] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [isSoldOut, setIsSoldOut] = useState(false);
@@ -235,6 +237,8 @@ export default function AdminPage() {
     setNotesVal("");
     setCondition("Excellent");
     setIssue("");
+    setModelHeight("");
+    setModelWeight("");
     setImages([]);
     setIsNewArrival(false);
     setIsSoldOut(false);
@@ -266,6 +270,8 @@ export default function AdminPage() {
       setCondition(itemCond || "Excellent");
     }
     setIssue(item.issue || item.measurementsData?.issue || "");
+    setModelHeight(item.modelHeight || item.measurementsData?.modelHeight || "");
+    setModelWeight(item.modelWeight || item.measurementsData?.modelWeight || "");
     setImages(item.images || []);
     setIsNewArrival(!!item.isNewArrival);
     setIsSoldOut(!!item.isSoldOut);
@@ -735,6 +741,12 @@ export default function AdminPage() {
       if (issue.trim()) {
         measurementsData.issue = issue.trim();
       }
+      if (modelHeight.trim()) {
+        measurementsData.modelHeight = modelHeight.trim();
+      }
+      if (modelWeight.trim()) {
+        measurementsData.modelWeight = modelWeight.trim();
+      }
 
       const finalTagSize = ["bags", "accessories"].includes(collectionSlug) ? "N/A" : tagSize;
       const existingDisplayOrder = editingId
@@ -750,6 +762,8 @@ export default function AdminPage() {
         measurementsData,
         condition: condition.trim(),
         issue: issue.trim() || undefined,
+        modelHeight: modelHeight.trim() || undefined,
+        modelWeight: modelWeight.trim() || undefined,
         images,
         isNewArrival,
         status: targetStatus,
@@ -2118,6 +2132,42 @@ export default function AdminPage() {
                       className="w-full px-4 py-3 bg-white border border-neutral-300 focus:border-black rounded-xl text-sm focus:outline-none transition-colors"
                     />
                   </div>
+
+                  {/* 5. Model Details (Height & Weight) */}
+                  <div className="pt-2 border-t border-neutral-200/60">
+                    <label className="block text-xs font-semibold text-neutral-800 uppercase mb-2 flex items-center justify-between">
+                      <span>Model Details</span>
+                      <span className="text-[11px] font-normal text-neutral-400 lowercase">optional</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                          Height (feet)
+                        </label>
+                        <input
+                          type="text"
+                          tabIndex={12}
+                          value={modelHeight}
+                          onChange={(e) => setModelHeight(e.target.value)}
+                          placeholder="e.g. 5'8 or 5.8"
+                          className="w-full px-4 py-2.5 bg-white border border-neutral-300 focus:border-black rounded-xl text-sm focus:outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-neutral-600 uppercase mb-1">
+                          Weight (kg)
+                        </label>
+                        <input
+                          type="text"
+                          tabIndex={13}
+                          value={modelWeight}
+                          onChange={(e) => setModelWeight(e.target.value)}
+                          placeholder="e.g. 70"
+                          className="w-full px-4 py-2.5 bg-white border border-neutral-300 focus:border-black rounded-xl text-sm focus:outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Product Photos Section */}
@@ -2449,6 +2499,10 @@ export default function AdminPage() {
                           const origin = typeof window !== "undefined" ? window.location.origin : "";
                           const productLink = editingId ? `${origin}/products/${editingId}` : `${origin}/products/...`;
                           const issueText = issue.trim();
+                          const modelDetailsSummary = [
+                            modelHeight.trim() ? `Height: ${modelHeight.trim()}` : "",
+                            modelWeight.trim() ? `Weight: ${modelWeight.trim()}kg` : "",
+                          ].filter(Boolean).join(" | ");
 
                           const orderText = `ORDER INQUIRY - GRAIL SOCIETY\n` +
                             `• Item: ${title.trim() || "Untitled"}\n` +
@@ -2456,7 +2510,8 @@ export default function AdminPage() {
                             `• Tag Size: ${tagSize || "N/A"}\n` +
                             `• Measurements: ${liveFormattedMeasurements}\n` +
                             `• Condition: ${condition.trim() || "N/A"}\n` +
-                            (issueText ? `• Issue: ${issueText}\n\n` : `\n`) +
+                            (issueText ? `• Issue: ${issueText}\n` : "") +
+                            (modelDetailsSummary ? `• Model Details: ${modelDetailsSummary}\n\n` : `\n`) +
                             `Product Link: ${productLink}\n\n` +
                             `Image Link: ${images[0] || "No image uploaded"}`;
 
@@ -2499,6 +2554,15 @@ export default function AdminPage() {
                       {issue.trim() && (
                         <p>
                           <span className="font-semibold text-neutral-900">Issue:</span> {issue.trim()}
+                        </p>
+                      )}
+                      {(modelHeight.trim() || modelWeight.trim()) && (
+                        <p>
+                          <span className="font-semibold text-neutral-900">Model:</span>{" "}
+                          {[
+                            modelHeight.trim() ? `Height: ${modelHeight.trim()}` : "",
+                            modelWeight.trim() ? `Weight: ${modelWeight.trim()}kg` : "",
+                          ].filter(Boolean).join(" | ")}
                         </p>
                       )}
                     </div>
