@@ -371,6 +371,13 @@ export default function ProductDetailPage({ params }: PageProps) {
                   );
                 })}
 
+                {/* Sold Out Badge on Main Photo */}
+                {product.isSoldOut && (
+                  <span className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 rounded-full bg-neutral-200/90 px-4.5 py-2 text-sm sm:text-base font-normal text-neutral-900 leading-tight backdrop-blur-xs z-20 select-none">
+                    Sold out
+                  </span>
+                )}
+
                 {/* Bottom Right Circular Navigation Arrows */}
                 {productImages.length > 1 && (
                   <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
@@ -399,9 +406,16 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
                   {product.title}
                 </h1>
-                <p className="text-base sm:text-lg font-medium text-neutral-900 mt-2">
-                  {product.priceFormatted}
-                </p>
+                <div className="flex items-center gap-3 mt-2">
+                  <p className="text-base sm:text-lg font-medium text-neutral-900">
+                    {product.priceFormatted}
+                  </p>
+                  {product.isSoldOut && (
+                    <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs sm:text-sm font-normal bg-neutral-200/90 text-neutral-800 backdrop-blur-xs">
+                      Sold out
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Copy Order Details Button */}
@@ -522,6 +536,11 @@ export default function ProductDetailPage({ params }: PageProps) {
                           sizes="(max-width: 640px) 50vw, 25vw"
                           className="object-cover object-center opacity-0 transition-all duration-200 ease-out group-hover:opacity-100 group-hover:scale-105"
                         />
+                      )}
+                      {item.isSoldOut && (
+                        <span className="absolute top-2.5 right-2.5 rounded-full bg-neutral-200/90 px-3.5 py-1.5 text-[13px] font-normal text-neutral-900 leading-tight backdrop-blur-xs z-10 select-none">
+                          Sold out
+                        </span>
                       )}
                     </div>
                     <h3 className="text-xs sm:text-sm font-normal text-neutral-800 line-clamp-2 leading-tight">

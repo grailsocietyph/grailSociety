@@ -96,7 +96,7 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
         )}
 
         {product.isSoldOut && (
-          <span className="absolute top-2 right-2 rounded-full bg-neutral-200/90 px-2.5 py-1 text-[10px] font-normal text-neutral-800 backdrop-blur-xs z-10">
+          <span className="absolute top-2.5 right-2.5 rounded-full bg-neutral-200/90 px-3.5 py-1.5 text-[13px] sm:text-sm font-normal text-neutral-900 leading-tight backdrop-blur-xs z-10 select-none">
             Sold out
           </span>
         )}

@@ -351,7 +351,7 @@ export default function Header() {
                               {item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`}
                             </p>
                             {item.isSoldOut && (
-                              <span className="text-[10px] text-neutral-400 font-medium block">Sold out</span>
+                              <span className="text-xs text-neutral-400 font-medium block">Sold out</span>
                             )}
                           </div>
                         </div>
