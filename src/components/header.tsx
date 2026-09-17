@@ -18,7 +18,7 @@ export default function Header() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  
+
   const searchRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -112,9 +112,8 @@ export default function Header() {
     <>
       {/* ================= HEADER ================= */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-in-out border-none outline-none ${
-          isVisible ? "translate-y-0" : "-translate-y-full"
-        } ${isTransparent ? "bg-transparent" : "bg-white/95 backdrop-blur-md shadow-2xs"}`}
+        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-in-out border-none outline-none ${isVisible ? "translate-y-0" : "-translate-y-full"
+          } ${isTransparent ? "bg-transparent" : "bg-white/95 backdrop-blur-md shadow-2xs"}`}
       >
         {/* ================= TOP BLACK SCROLLING ANNOUNCEMENT TICKER ================= */}
         {announcement && announcement.isActive && announcement.text.trim() && (
@@ -150,17 +149,15 @@ export default function Header() {
             <button
               onClick={() => setIsMenuOpen(true)}
               aria-label="Open Menu"
-              className={`md:hidden p-2 hover:opacity-75 transition-opacity cursor-pointer ${
-                isTransparent ? "text-white" : "text-neutral-900"
-              }`}
+              className={`md:hidden p-2 hover:opacity-75 transition-opacity cursor-pointer ${isTransparent ? "text-white" : "text-neutral-900"
+                }`}
             >
               <Menu className="h-6 w-6 stroke-[1.8]" />
             </button>
 
             <nav
-              className={`hidden md:flex items-center space-x-6 lg:space-x-8 text-sm lg:text-[15px] font-normal tracking-tight font-helvetica ${
-                isTransparent ? "text-white" : "text-neutral-800"
-              }`}
+              className={`hidden md:flex items-center space-x-6 lg:space-x-8 text-sm lg:text-[15px] font-normal tracking-tight font-helvetica ${isTransparent ? "text-white" : "text-neutral-800"
+                }`}
             >
               <Link href="/" className="hover:opacity-75 transition-opacity">
                 Home
@@ -190,9 +187,10 @@ export default function Header() {
                 width={160}
                 height={80}
                 priority
-                className={`w-auto object-contain ${
-                  isTransparent ? "h-10 sm:h-12 lg:h-14" : "h-14 sm:h-16 lg:h-[72px]"
-                }`}
+                className={`${isTransparent
+                    ? "h-14 w-14 object-cover sm:h-16 sm:w-16 lg:h-[72px] lg:w-[72px]"
+                    : "object-contain h-14 w-auto sm:h-16 lg:h-[72px]"
+                  }`}
               />
             </Link>
           </div>
@@ -255,11 +253,10 @@ export default function Header() {
                     }}
                     placeholder="Search drops, brands, items..."
                     autoFocus
-                    className={`w-full py-2 pl-3 pr-8 text-xs sm:text-sm bg-transparent border-b transition-colors focus:outline-none ${
-                      isTransparent 
-                        ? "text-white border-white/70 placeholder:text-white/60 focus:border-white" 
+                    className={`w-full py-2 pl-3 pr-8 text-xs sm:text-sm bg-transparent border-b transition-colors focus:outline-none ${isTransparent
+                        ? "text-white border-white/70 placeholder:text-white/60 focus:border-white"
                         : "text-neutral-900 border-neutral-400 placeholder:text-neutral-400 focus:border-black"
-                    }`}
+                      }`}
                   />
                   <button
                     type="button"
@@ -268,9 +265,8 @@ export default function Header() {
                       setSearchQuery("");
                     }}
                     aria-label="Close search"
-                    className={`absolute right-1 p-1 hover:opacity-75 transition-opacity cursor-pointer ${
-                      isTransparent ? "text-white" : "text-neutral-700"
-                    }`}
+                    className={`absolute right-1 p-1 hover:opacity-75 transition-opacity cursor-pointer ${isTransparent ? "text-white" : "text-neutral-700"
+                      }`}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -281,9 +277,8 @@ export default function Header() {
                   <button
                     onClick={() => setIsSearchOpen(true)}
                     aria-label="Open Search"
-                    className={`sm:hidden p-2 hover:opacity-75 transition-opacity cursor-pointer ${
-                      isTransparent ? "text-white" : "text-neutral-900"
-                    }`}
+                    className={`sm:hidden p-2 hover:opacity-75 transition-opacity cursor-pointer ${isTransparent ? "text-white" : "text-neutral-900"
+                      }`}
                   >
                     <Search className="h-6 w-6 stroke-[1.8]" />
                   </button>
@@ -292,11 +287,10 @@ export default function Header() {
                   <button
                     onClick={() => setIsSearchOpen(true)}
                     aria-label="Open Search"
-                    className={`hidden sm:flex w-full items-center justify-between px-4 py-2 rounded-xl border transition-all cursor-pointer ${
-                      isTransparent
+                    className={`hidden sm:flex w-full items-center justify-between px-4 py-2 rounded-xl border transition-all cursor-pointer ${isTransparent
                         ? "text-white/90 border-white/30 hover:border-white bg-white/10 backdrop-blur-xs"
                         : "text-neutral-600 border-neutral-200 hover:border-neutral-400 bg-neutral-50"
-                    }`}
+                      }`}
                   >
                     <span className="text-xs font-normal tracking-wide">Search drops...</span>
                     <Search className="h-4 w-4 stroke-[1.8] shrink-0 ml-2" />
@@ -307,7 +301,7 @@ export default function Header() {
               {/* ================= SEARCH SUGGESTIONS POPUP (Fully Mobile Responsive) ================= */}
               {isSearchOpen && searchQuery.trim().length > 0 && (
                 <div className="fixed top-16 left-3 right-3 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:mt-3 w-auto sm:w-[380px] max-w-[calc(100vw-1.5rem)] bg-white text-neutral-900 rounded-2xl border border-neutral-200 shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150 font-helvetica">
-                  
+
                   {/* Dropdown Header */}
                   <div className="px-4 py-2.5 border-b border-neutral-100 flex items-center justify-between text-[11px] text-neutral-400 font-semibold uppercase tracking-wider bg-neutral-50/70">
                     <span>Suggested Items ({matchingProducts.length})</span>
@@ -401,29 +395,29 @@ export default function Header() {
 
           {/* Navigation Links (font-normal, positioned cleanly at top) */}
           <nav className="flex flex-col space-y-6 mt-6 text-[28px] font-normal tracking-tight text-neutral-900">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               onClick={() => setIsMenuOpen(false)}
               className="hover:opacity-70 transition-opacity"
             >
               Home
             </Link>
-            <Link 
-              href="/new-arrivals" 
+            <Link
+              href="/new-arrivals"
               onClick={() => setIsMenuOpen(false)}
               className="hover:opacity-70 transition-opacity"
             >
               New Arrivals
             </Link>
-            <Link 
-              href="/shop" 
+            <Link
+              href="/shop"
               onClick={() => setIsMenuOpen(false)}
               className="hover:opacity-70 transition-opacity"
             >
               Shop All
             </Link>
-            <Link 
-              href="/collections" 
+            <Link
+              href="/collections"
               onClick={() => setIsMenuOpen(false)}
               className="hover:opacity-70 transition-opacity"
             >
