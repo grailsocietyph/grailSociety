@@ -937,6 +937,7 @@ export default function AdminPage() {
                 width={120}
                 height={36}
                 className="h-10 sm:h-14 w-auto object-contain object-left"
+                unoptimized
                 priority
               />
             </Link>
