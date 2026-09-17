@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS public.products (
   title TEXT NOT NULL,
   price_num NUMERIC NOT NULL DEFAULT 0,
   price_formatted TEXT NOT NULL,
+  discounted_price NUMERIC DEFAULT NULL,
+  CONSTRAINT products_discounted_price_check CHECK (
+    discounted_price IS NULL
+    OR (
+      discounted_price > 0
+      AND discounted_price < price_num
+    )
+  ),
   collection_slug TEXT NOT NULL DEFAULT 't-shirts',
   tag_size TEXT NOT NULL DEFAULT 'M',
   measurements_data JSONB DEFAULT '{}'::jsonb,
@@ -36,6 +44,23 @@ CREATE INDEX IF NOT EXISTS idx_products_display_order ON public.products(display
 -- 2.1 For existing databases, run this quick migration:
 -- ALTER TABLE public.products ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
 -- CREATE INDEX IF NOT EXISTS idx_products_display_order ON public.products(display_order ASC);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS discounted_price NUMERIC DEFAULT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'products_discounted_price_check'
+      AND conrelid = 'public.products'::regclass
+  ) THEN
+    ALTER TABLE public.products
+      ADD CONSTRAINT products_discounted_price_check CHECK (
+        discounted_price IS NULL
+        OR (discounted_price > 0 AND discounted_price < price_num)
+      );
+  END IF;
+END $$;
 
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
