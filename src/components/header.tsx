@@ -188,8 +188,8 @@ export default function Header() {
                 height={80}
                 priority
                 className={`${isTransparent
-                    ? "h-14 w-14 object-cover sm:h-16 sm:w-16 lg:h-[72px] lg:w-[72px]"
-                    : "object-contain h-14 w-auto sm:h-16 lg:h-[72px]"
+                  ? "h-14 w-14 object-cover sm:h-16 sm:w-16 lg:h-[72px] lg:w-[72px]"
+                  : "object-contain h-14 w-auto sm:h-16 lg:h-[72px]"
                   }`}
               />
             </Link>
@@ -254,8 +254,8 @@ export default function Header() {
                     placeholder="Search drops, brands, items..."
                     autoFocus
                     className={`w-full py-2 pl-3 pr-8 text-xs sm:text-sm bg-transparent border-b transition-colors focus:outline-none ${isTransparent
-                        ? "text-white border-white/70 placeholder:text-white/60 focus:border-white"
-                        : "text-neutral-900 border-neutral-400 placeholder:text-neutral-400 focus:border-black"
+                      ? "text-white border-white/70 placeholder:text-white/60 focus:border-white"
+                      : "text-neutral-900 border-neutral-400 placeholder:text-neutral-400 focus:border-black"
                       }`}
                   />
                   <button
@@ -288,8 +288,8 @@ export default function Header() {
                     onClick={() => setIsSearchOpen(true)}
                     aria-label="Open Search"
                     className={`hidden sm:flex w-full items-center justify-between px-4 py-2 rounded-xl border transition-all cursor-pointer ${isTransparent
-                        ? "text-white/90 border-white/30 hover:border-white bg-white/10 backdrop-blur-xs"
-                        : "text-neutral-600 border-neutral-200 hover:border-neutral-400 bg-neutral-50"
+                      ? "text-white/90 border-white/30 hover:border-white bg-white/10 backdrop-blur-xs"
+                      : "text-neutral-600 border-neutral-200 hover:border-neutral-400 bg-neutral-50"
                       }`}
                   >
                     <span className="text-xs font-normal tracking-wide">Search drops...</span>
@@ -342,7 +342,16 @@ export default function Header() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-xs sm:text-sm font-bold text-neutral-900">
-                              {item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`}
+                              {item.discountedPrice && item.discountedPrice > 0 && item.discountedPrice < item.priceNum ? (
+                                <>
+                                  <span className="text-neutral-400 line-through mr-1.5">
+                                    {item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`}
+                                  </span>
+                                  <span>{`₱${item.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+                                </>
+                              ) : (
+                                item.priceFormatted || `₱${item.priceNum?.toLocaleString()}`
+                              )}
                             </p>
                             {item.isSoldOut && (
                               <span className="text-xs text-neutral-400 font-medium block">Sold out</span>

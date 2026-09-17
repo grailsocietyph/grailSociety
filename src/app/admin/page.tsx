@@ -156,6 +156,8 @@ export default function AdminPage() {
   // Form states - initial clean empty values (no pre-filled static mock data)
   const [title, setTitle] = useState("");
   const [priceNum, setPriceNum] = useState("");
+  const [discountEnabled, setDiscountEnabled] = useState(false);
+  const [discountedPrice, setDiscountedPrice] = useState("");
   const [collectionSlug, setCollectionSlug] = useState("t-shirts");
   const [tagSize, setTagSize] = useState("N/A");
 
@@ -228,6 +230,8 @@ export default function AdminPage() {
     setCopiedPreview(false);
     setTitle("");
     setPriceNum("");
+    setDiscountEnabled(false);
+    setDiscountedPrice("");
     setCollectionSlug("t-shirts");
     setTagSize("N/A");
     setLengthVal("");
@@ -254,6 +258,8 @@ export default function AdminPage() {
     setCopiedPreview(false);
     setTitle(item.title || "");
     setPriceNum(item.priceNum ? item.priceNum.toString() : "");
+    setDiscountEnabled(item.discountedPrice !== null && item.discountedPrice !== undefined);
+    setDiscountedPrice(item.discountedPrice ? item.discountedPrice.toString() : "");
     setCollectionSlug(item.collectionSlug || "t-shirts");
     setTagSize(item.tagSize || "N/A");
     setLengthVal(stripInch(item.measurementsData?.length));
@@ -677,6 +683,15 @@ export default function AdminPage() {
       newErrors.priceNum = "Please enter a valid price greater than 0.";
     }
 
+    if (discountEnabled) {
+      const parsedDiscountedPrice = parseFloat(discountedPrice);
+      if (!discountedPrice.trim() || !Number.isFinite(parsedDiscountedPrice) || parsedDiscountedPrice <= 0) {
+        newErrors.discountedPrice = "Please enter a valid discounted price greater than 0.";
+      } else if (Number.isFinite(parsedPrice) && parsedDiscountedPrice >= parsedPrice) {
+        newErrors.discountedPrice = "Discounted price must be less than the regular price.";
+      }
+    }
+
     if (!condition.trim()) {
       newErrors.condition = "Condition specification is required.";
     }
@@ -725,6 +740,7 @@ export default function AdminPage() {
     setIsSaving(true);
     try {
       const num = parseFloat(priceNum) || 0;
+      const parsedDiscountedPrice = parseFloat(discountedPrice);
       const priceFormatted = `₱${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
       let measurementsData: Record<string, string | undefined> = {};
@@ -757,6 +773,7 @@ export default function AdminPage() {
         title: title.trim(),
         priceNum: num,
         priceFormatted,
+        discountedPrice: discountEnabled ? parsedDiscountedPrice : null,
         collectionSlug,
         tagSize: finalTagSize,
         measurementsData,
@@ -893,6 +910,9 @@ export default function AdminPage() {
   const livePriceFormatted = priceNum
     ? `₱${(parseFloat(priceNum) || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
     : "₱0.00";
+  const liveDiscountedPriceFormatted = discountEnabled && discountedPrice
+    ? `₱${(parseFloat(discountedPrice) || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+    : "";
 
   // Formatted measurements string for live preview
   const liveFormattedMeasurements = notesVal.trim()
@@ -1142,11 +1162,10 @@ export default function AdminPage() {
                     setCategoryFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 capitalize truncate ${
-                    categoryFilter !== "all"
-                      ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
-                      : "bg-white border-neutral-300 text-neutral-900"
-                  }`}
+                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 capitalize truncate ${categoryFilter !== "all"
+                    ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                    : "bg-white border-neutral-300 text-neutral-900"
+                    }`}
                 >
                   <option value="all" className="bg-white text-neutral-900 font-normal">All Categories</option>
                   <option value="t-shirts" className="bg-white text-neutral-900 font-normal">T-shirts and Polos</option>
@@ -1159,9 +1178,8 @@ export default function AdminPage() {
                   <option value="accessories" className="bg-white text-neutral-900 font-normal">Accessories</option>
                   <option value="shoes" className="bg-white text-neutral-900 font-normal">Shoes</option>
                 </select>
-                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${
-                  categoryFilter !== "all" ? "text-white" : "text-neutral-500"
-                }`} />
+                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${categoryFilter !== "all" ? "text-white" : "text-neutral-500"
+                  }`} />
               </div>
 
               {/* Status Filter Button */}
@@ -1172,19 +1190,17 @@ export default function AdminPage() {
                     setStatusFilter(e.target.value as "all" | "published" | "draft");
                     setCurrentPage(1);
                   }}
-                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 capitalize truncate ${
-                    statusFilter !== "all"
-                      ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
-                      : "bg-white border-neutral-300 text-neutral-900"
-                  }`}
+                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 capitalize truncate ${statusFilter !== "all"
+                    ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                    : "bg-white border-neutral-300 text-neutral-900"
+                    }`}
                 >
                   <option value="all" className="bg-white text-neutral-900 font-normal">All Statuses</option>
                   <option value="published" className="bg-white text-neutral-900 font-normal">Published</option>
                   <option value="draft" className="bg-white text-neutral-900 font-normal">Draft</option>
                 </select>
-                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${
-                  statusFilter !== "all" ? "text-white" : "text-neutral-500"
-                }`} />
+                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${statusFilter !== "all" ? "text-white" : "text-neutral-500"
+                  }`} />
               </div>
 
               {/* New Arrival Filter Button */}
@@ -1195,19 +1211,17 @@ export default function AdminPage() {
                     setNewArrivalFilter(e.target.value as "all" | "yes" | "no");
                     setCurrentPage(1);
                   }}
-                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 truncate ${
-                    newArrivalFilter !== "all"
-                      ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
-                      : "bg-white border-neutral-300 text-neutral-900"
-                  }`}
+                  className={`w-full px-2 sm:px-3.5 md:px-4 py-2 sm:py-2.5 md:py-3 border text-[11px] sm:text-xs md:text-sm font-bold rounded-xl sm:rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer shadow-2xs appearance-none pr-6 sm:pr-8 md:pr-9 truncate ${newArrivalFilter !== "all"
+                    ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                    : "bg-white border-neutral-300 text-neutral-900"
+                    }`}
                 >
                   <option value="all" className="bg-white text-neutral-900 font-normal">All New Arrivals</option>
                   <option value="yes" className="bg-white text-neutral-900 font-normal">New Arrivals Only</option>
                   <option value="no" className="bg-white text-neutral-900 font-normal">Not New Arrival</option>
                 </select>
-                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${
-                  newArrivalFilter !== "all" ? "text-white" : "text-neutral-500"
-                }`} />
+                <ChevronDown className={`absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none ${newArrivalFilter !== "all" ? "text-white" : "text-neutral-500"
+                  }`} />
               </div>
             </div>
 
@@ -1324,12 +1338,21 @@ export default function AdminPage() {
                       <td className="py-3 px-4 font-medium text-neutral-900 max-w-xs truncate">{item.title}</td>
                       <td className="py-3 px-4 text-neutral-600 capitalize">{getCategoryLabel(item.collectionSlug)}</td>
                       <td className="py-3 px-4 text-neutral-600">{item.tagSize || "N/A"}</td>
-                      <td className="py-3 px-4 font-semibold text-neutral-900">{item.priceFormatted}</td>
+                      <td className="py-3 px-4 font-semibold text-neutral-900">
+                        {item.discountedPrice && item.discountedPrice > 0 && item.discountedPrice < item.priceNum ? (
+                          <>
+                            <span className="text-neutral-400 line-through mr-1.5">{item.priceFormatted}</span>
+                            <span>{`₱${item.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+                          </>
+                        ) : (
+                          item.priceFormatted
+                        )}
+                      </td>
                       <td className="py-3 px-4">
                         <span
                           className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full uppercase ${item.status === "published"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-700"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
                             }`}
                         >
                           {item.status}
@@ -1422,8 +1445,8 @@ export default function AdminPage() {
                         </span>
                         <span
                           className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase ${item.status === "published"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-700"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
                             }`}
                         >
                           {item.status}
@@ -1433,9 +1456,17 @@ export default function AdminPage() {
                         {item.title}
                       </h3>
                       <p className="text-sm font-semibold text-neutral-900 mt-1">
-                        {item.priceFormatted}
+                        {item.discountedPrice && item.discountedPrice > 0 && item.discountedPrice < item.priceNum ? (
+                          <>
+                            <span className="text-neutral-400 line-through mr-1.5">{item.priceFormatted}</span>
+                            <span>{`₱${item.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+                          </>
+                        ) : (
+                          item.priceFormatted
+                        )}
                       </p>
                     </div>
+
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-neutral-100 text-xs">
@@ -1671,8 +1702,8 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => setActiveModalTab("edit")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeModalTab === "edit"
-                        ? "bg-white text-black shadow-xs"
-                        : "text-neutral-600 hover:text-black"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-600 hover:text-black"
                       }`}
                   >
                     <Edit className="h-3.5 w-3.5" />
@@ -1685,8 +1716,8 @@ export default function AdminPage() {
                       setActiveModalTab("preview");
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${activeModalTab === "preview"
-                        ? "bg-white text-black shadow-xs"
-                        : "text-neutral-600 hover:text-black"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-600 hover:text-black"
                       }`}
                   >
                     <Eye className="h-3.5 w-3.5 text-neutral-800" />
@@ -1795,6 +1826,51 @@ export default function AdminPage() {
                         <option value="shoes">Shoes</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="border-t border-neutral-200/60 pt-4">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-neutral-800 uppercase cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={discountEnabled}
+                        onChange={(e) => {
+                          setDiscountEnabled(e.target.checked);
+                          if (!e.target.checked) {
+                            setDiscountedPrice("");
+                            if (errors.discountedPrice) setErrors((prev) => ({ ...prev, discountedPrice: "" }));
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-neutral-300 accent-black cursor-pointer"
+                      />
+                      Enable Discount
+                    </label>
+
+                    {discountEnabled && (
+                      <div className="mt-3">
+                        <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
+                          Discounted Price (₱) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={discountedPrice}
+                          onChange={(e) => {
+                            setDiscountedPrice(e.target.value);
+                            if (errors.discountedPrice) setErrors((prev) => ({ ...prev, discountedPrice: "" }));
+                          }}
+                          placeholder="e.g. 200"
+                          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors ${errors.discountedPrice ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                            }`}
+                        />
+                        {errors.discountedPrice && (
+                          <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
+                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span>{errors.discountedPrice}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Checkboxes */}
@@ -2195,11 +2271,10 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setPhotoGridDensity("compact")}
                             title="Compact View (5 columns)"
-                            className={`px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                              photoGridDensity === "compact"
-                                ? "bg-white text-black shadow-xs"
-                                : "text-neutral-500 hover:text-black"
-                            }`}
+                            className={`px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${photoGridDensity === "compact"
+                              ? "bg-white text-black shadow-xs"
+                              : "text-neutral-500 hover:text-black"
+                              }`}
                           >
                             <LayoutGrid className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline text-[11px]">Compact</span>
@@ -2208,11 +2283,10 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => setPhotoGridDensity("comfortable")}
                             title="Comfortable View (3 columns)"
-                            className={`px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                              photoGridDensity === "comfortable"
-                                ? "bg-white text-black shadow-xs"
-                                : "text-neutral-500 hover:text-black"
-                            }`}
+                            className={`px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${photoGridDensity === "comfortable"
+                              ? "bg-white text-black shadow-xs"
+                              : "text-neutral-500 hover:text-black"
+                              }`}
                           >
                             <Grid3X3 className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline text-[11px]">Large</span>
@@ -2241,11 +2315,9 @@ export default function AdminPage() {
                           if (fileInput) fileInput.click();
                         }
                       }}
-                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl ${
-                        images.length > 0 ? "p-3.5 sm:p-4" : "p-5 sm:p-6"
-                      } cursor-pointer transition-colors bg-white focus-visible:ring-2 focus-visible:ring-black outline-none ${
-                        errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
-                      }`}
+                      className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl ${images.length > 0 ? "p-3.5 sm:p-4" : "p-5 sm:p-6"
+                        } cursor-pointer transition-colors bg-white focus-visible:ring-2 focus-visible:ring-black outline-none ${errors.images ? "border-red-400 bg-red-50/10" : "border-neutral-300 hover:border-black"
+                        }`}
                     >
                       {uploadingCount > 0 ? (
                         <div className="flex flex-col items-center gap-2 text-neutral-600">
@@ -2302,15 +2374,14 @@ export default function AdminPage() {
                             onDragOver={(e) => handleDragOver(e, i)}
                             onDragLeave={handleDragLeave}
                             onDrop={() => handleDrop(i)}
-                            className={`group relative bg-white rounded-xl overflow-hidden border p-1 shadow-2xs flex flex-col gap-1 cursor-grab active:cursor-grabbing transition-all ${
-                              isDragged
-                                ? "opacity-30 scale-95 border-dashed border-black ring-2 ring-black"
-                                : isTarget
+                            className={`group relative bg-white rounded-xl overflow-hidden border p-1 shadow-2xs flex flex-col gap-1 cursor-grab active:cursor-grabbing transition-all ${isDragged
+                              ? "opacity-30 scale-95 border-dashed border-black ring-2 ring-black"
+                              : isTarget
                                 ? "border-black ring-2 ring-black scale-102 bg-neutral-100"
                                 : i === 0
-                                ? "border-neutral-900 ring-1 ring-black/10"
-                                : "border-neutral-300 hover:border-black"
-                            }`}
+                                  ? "border-neutral-900 ring-1 ring-black/10"
+                                  : "border-neutral-300 hover:border-black"
+                              }`}
                           >
                             <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-white border border-neutral-200/80">
                               <Image src={img} alt={`Photo ${i + 1}`} fill unoptimized className="object-cover" />
@@ -2417,11 +2488,10 @@ export default function AdminPage() {
                           id={`admin-preview-thumb-${idx}`}
                           type="button"
                           onClick={() => setPreviewImageIndex(idx)}
-                          className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-white overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
-                            previewImageIndex === idx
-                              ? "border-black ring-2 ring-black/10 scale-100"
-                              : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
-                          }`}
+                          className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-white overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${previewImageIndex === idx
+                            ? "border-black ring-2 ring-black/10 scale-100"
+                            : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
+                            }`}
                         >
                           <Image
                             src={img}
@@ -2487,7 +2557,14 @@ export default function AdminPage() {
                         {title.trim() ? title.trim() : "—"}
                       </h1>
                       <p className="text-base sm:text-lg font-medium text-neutral-900 mt-2">
-                        {priceNum.trim() ? livePriceFormatted : "₱0.00"}
+                        {discountEnabled && liveDiscountedPriceFormatted && parseFloat(discountedPrice) < parseFloat(priceNum) ? (
+                          <>
+                            <span className="text-neutral-400 line-through mr-2">{livePriceFormatted}</span>
+                            <span>{liveDiscountedPriceFormatted}</span>
+                          </>
+                        ) : (
+                          priceNum.trim() ? livePriceFormatted : "₱0.00"
+                        )}
                       </p>
                     </div>
 
@@ -2506,7 +2583,9 @@ export default function AdminPage() {
 
                           const orderText = `ORDER INQUIRY - GRAIL SOCIETY\n` +
                             `• Item: ${title.trim() || "Untitled"}\n` +
-                            `• Price: ${livePriceFormatted}\n` +
+                            `• Price: ${discountEnabled && liveDiscountedPriceFormatted && parseFloat(discountedPrice) < parseFloat(priceNum)
+                              ? liveDiscountedPriceFormatted
+                              : livePriceFormatted}\n` +
                             `• Tag Size: ${tagSize || "N/A"}\n` +
                             `• Measurements: ${liveFormattedMeasurements}\n` +
                             `• Condition: ${condition.trim() || "N/A"}\n` +
@@ -2707,15 +2786,14 @@ export default function AdminPage() {
                         setDraggedReorderIdx(null);
                         setDragOverReorderIdx(null);
                       }}
-                      className={`flex items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl transition-all select-none ${
-                        isBeingDragged
-                          ? "opacity-30 scale-95 border-dashed border-black bg-neutral-100"
-                          : isTarget
+                      className={`flex items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl transition-all select-none ${isBeingDragged
+                        ? "opacity-30 scale-95 border-dashed border-black bg-neutral-100"
+                        : isTarget
                           ? "ring-2 ring-black bg-neutral-100/90 scale-[1.01] border-neutral-300 shadow-sm"
                           : isHero
-                          ? "bg-amber-50/80 border border-amber-300 shadow-2xs"
-                          : "bg-white hover:bg-neutral-50 border border-neutral-200/90"
-                      }`}
+                            ? "bg-amber-50/80 border border-amber-300 shadow-2xs"
+                            : "bg-white hover:bg-neutral-50 border border-neutral-200/90"
+                        }`}
                     >
                       {/* Left: Drag Handle + Static Position Badge + Thumbnail + Info */}
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -2729,11 +2807,10 @@ export default function AdminPage() {
 
                         {/* Normal Static Position Badge */}
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 select-none ${
-                            isHero
-                              ? "bg-black text-amber-400 shadow-2xs"
-                              : "bg-neutral-100 text-neutral-800"
-                          }`}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 select-none ${isHero
+                            ? "bg-black text-amber-400 shadow-2xs"
+                            : "bg-neutral-100 text-neutral-800"
+                            }`}
                         >
                           #{originalIndex + 1}
                         </div>
@@ -2768,16 +2845,24 @@ export default function AdminPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[10px] sm:text-[11px] text-neutral-500 truncate">
-                            <span className="font-semibold text-neutral-700">{item.priceFormatted}</span>
+                            <span className="font-semibold text-neutral-700">
+                              {item.discountedPrice && item.discountedPrice > 0 && item.discountedPrice < item.priceNum ? (
+                                <>
+                                  <span className="text-neutral-400 line-through mr-1">{item.priceFormatted}</span>
+                                  <span>{`₱${item.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+                                </>
+                              ) : (
+                                item.priceFormatted
+                              )}
+                            </span>
                             <span>•</span>
                             <span className="capitalize">{getCategoryLabel(item.collectionSlug)}</span>
                             <span>•</span>
                             <span
-                              className={`inline-flex px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] uppercase font-bold ${
-                                item.status === "published"
-                                  ? "text-emerald-700 bg-emerald-50"
-                                  : "text-amber-700 bg-amber-50"
-                              }`}
+                              className={`inline-flex px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] uppercase font-bold ${item.status === "published"
+                                ? "text-emerald-700 bg-emerald-50"
+                                : "text-amber-700 bg-amber-50"
+                                }`}
                             >
                               {item.status}
                             </span>
@@ -2973,19 +3058,17 @@ export default function AdminPage() {
                         return (
                           <div
                             key={admin.id}
-                            className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                              isCurrent
-                                ? "bg-amber-50/50 border-amber-300"
-                                : "bg-neutral-50/80 border-neutral-200 hover:bg-white"
-                            }`}
+                            className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isCurrent
+                              ? "bg-amber-50/50 border-amber-300"
+                              : "bg-neutral-50/80 border-neutral-200 hover:bg-white"
+                              }`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <div
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0 shadow-2xs ${
-                                  admin.role === "owner"
-                                    ? "bg-black text-amber-400"
-                                    : "bg-neutral-900 text-white"
-                                }`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0 shadow-2xs ${admin.role === "owner"
+                                  ? "bg-black text-amber-400"
+                                  : "bg-neutral-900 text-white"
+                                  }`}
                               >
                                 {admin.fullName.charAt(0)}
                               </div>
@@ -3000,11 +3083,10 @@ export default function AdminPage() {
                                     </span>
                                   )}
                                   <span
-                                    className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                                      admin.role === "owner"
-                                        ? "bg-amber-100 text-amber-900 border border-amber-300 font-black"
-                                        : "bg-neutral-200 text-neutral-800"
-                                    }`}
+                                    className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${admin.role === "owner"
+                                      ? "bg-amber-100 text-amber-900 border border-amber-300 font-black"
+                                      : "bg-neutral-200 text-neutral-800"
+                                      }`}
                                   >
                                     {admin.role === "owner" ? "Owner" : "Admin"}
                                   </span>

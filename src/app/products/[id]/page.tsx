@@ -83,7 +83,7 @@ export default function ProductDetailPage({ params }: PageProps) {
     if (lightboxIndex !== null) {
       document.body.style.overflow = "hidden";
       setActiveScrollIndex(lightboxIndex);
-      
+
       const timer = setTimeout(() => {
         const el = document.getElementById(`lightbox-img-${lightboxIndex}`);
         if (el) {
@@ -239,17 +239,17 @@ export default function ProductDetailPage({ params }: PageProps) {
   const formattedMeasurements = product?.measurementsData?.notes
     ? product.measurementsData.notes
     : [
-        formatDimension("Length", product?.measurementsData?.length),
-        formatDimension("Width", product?.measurementsData?.width),
-        formatDimension("Waist", product?.measurementsData?.waist),
-        formatDimension("Leg Opening", product?.measurementsData?.legOpening),
-      ].filter(Boolean).join(" | ") || "N/A";
+      formatDimension("Length", product?.measurementsData?.length),
+      formatDimension("Width", product?.measurementsData?.width),
+      formatDimension("Waist", product?.measurementsData?.waist),
+      formatDimension("Leg Opening", product?.measurementsData?.legOpening),
+    ].filter(Boolean).join(" | ") || "N/A";
 
   const handleCopyOrderDetails = () => {
     if (!product) return;
     const mainImageUrl = productImages[0] || "";
     const productUrl = typeof window !== "undefined" ? window.location.href : "";
-    
+
     const issueText = (product.issue || product.measurementsData?.issue)?.trim();
     const modelHeightVal = (product.modelHeight || product.measurementsData?.modelHeight)?.trim();
     const modelWeightVal = (product.modelWeight || product.measurementsData?.modelWeight)?.trim();
@@ -260,7 +260,9 @@ export default function ProductDetailPage({ params }: PageProps) {
 
     const orderText = `ORDER INQUIRY - GRAIL SOCIETY\n` +
       `• Item: ${product.title}\n` +
-      `• Price: ${product.priceFormatted}\n` +
+      `• Price: ${product.discountedPrice && product.discountedPrice > 0 && product.discountedPrice < product.priceNum
+        ? `₱${product.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+        : product.priceFormatted}\n` +
       `• Tag Size: ${product.tagSize || "N/A"}\n` +
       `• Measurements: ${formattedMeasurements}\n` +
       `• Condition: ${product.condition || "N/A"}\n` +
@@ -308,10 +310,10 @@ export default function ProductDetailPage({ params }: PageProps) {
 
         <div className="mx-auto max-w-360 px-4 sm:px-8 pt-24 sm:pt-32 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            
+
             {/* Left Section: Thumbnails + Main Image Viewer */}
             <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4 items-start">
-              
+
               {/* Vertical Thumbnail List */}
               <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto max-h-[35rem] shrink-0 sm:w-20 w-full pr-0 sm:pr-1 pb-2 sm:pb-0 scroll-smooth">
                 {productImages.map((img, idx) => (
@@ -319,11 +321,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                     key={idx}
                     id={`storefront-thumb-${idx}`}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-white overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
-                      activeImageIndex === idx
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 aspect-square shrink-0 bg-white overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${activeImageIndex === idx
                         ? "border-black ring-2 ring-black/10 scale-100"
                         : "border-transparent opacity-60 hover:opacity-100 hover:border-neutral-300"
-                    }`}
+                      }`}
                   >
                     <Image
                       src={img}
@@ -342,7 +343,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               </div>
 
               {/* Main Active Photo Viewer (4:3 Portrait Orientation) */}
-              <div 
+              <div
                 className="relative flex-1 aspect-[3/4] w-full bg-white overflow-hidden rounded-2xl cursor-zoom-in group select-none"
                 onClick={() => setLightboxIndex(activeImageIndex)}
                 onTouchStart={handleTouchStart}
@@ -354,9 +355,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                   return (
                     <div
                       key={`${img}-${idx}`}
-                      className={`absolute inset-0 transition-opacity duration-200 ease-out ${
-                        isActive ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
-                      }`}
+                      className={`absolute inset-0 transition-opacity duration-200 ease-out ${isActive ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                        }`}
                     >
                       <Image
                         src={img}
@@ -408,7 +408,14 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </h1>
                 <div className="flex items-center gap-3 mt-2">
                   <p className="text-base sm:text-lg font-medium text-neutral-900">
-                    {product.priceFormatted}
+                    {product.discountedPrice && product.discountedPrice > 0 && product.discountedPrice < product.priceNum ? (
+                      <>
+                        <span className="text-neutral-400 line-through mr-2">{product.priceFormatted}</span>
+                        <span>{`₱${product.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+                      </>
+                    ) : (
+                      product.priceFormatted
+                    )}
                   </p>
                   {product.isSoldOut && (
                     <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs sm:text-sm font-normal bg-neutral-200/90 text-neutral-800 backdrop-blur-xs">
@@ -480,9 +487,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                     <span className="font-bold">2.</span>
                     <span>
                       Paste it into our Facebook page chat:{" "}
-                      <a 
-                        href="https://www.facebook.com/people/Grail-Society/100075987014852/" 
-                        target="_blank" 
+                      <a
+                        href="https://www.facebook.com/people/Grail-Society/100075987014852/"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="font-bold underline text-black hover:text-neutral-600"
                       >
@@ -523,9 +530,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                         fill
                         unoptimized
                         sizes="(max-width: 640px) 50vw, 25vw"
-                        className={`object-cover object-center transition-all duration-200 ease-out group-hover:scale-105 ${
-                          item.images && item.images.length > 1 ? "group-hover:opacity-0" : ""
-                        }`}
+                        className={`object-cover object-center transition-all duration-200 ease-out group-hover:scale-105 ${item.images && item.images.length > 1 ? "group-hover:opacity-0" : ""
+                          }`}
                       />
                       {item.images && item.images.length > 1 && (
                         <Image
@@ -547,7 +553,14 @@ export default function ProductDetailPage({ params }: PageProps) {
                       {item.title}
                     </h3>
                     <p className="text-xs sm:text-sm font-medium text-neutral-900 mt-1">
-                      {item.priceFormatted}
+                      {item.discountedPrice && item.discountedPrice > 0 && item.discountedPrice < item.priceNum ? (
+                        <>
+                          <span className="text-neutral-400 line-through mr-1.5">{item.priceFormatted}</span>
+                          <span>{`₱${item.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+                        </>
+                      ) : (
+                        item.priceFormatted
+                      )}
                     </p>
                   </Link>
                 ))}
@@ -559,7 +572,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
       {/* ================= FULLSCREEN SCROLLABLE GALLERY MODAL (Full Bleed, Desktop Right Rail, Mobile Bottom Strip) ================= */}
       {lightboxIndex !== null && (
-        <div 
+        <div
           ref={lightboxContainerRef}
           className="fixed inset-0 z-100 bg-white overflow-y-auto overflow-x-hidden font-helvetica select-none animate-in fade-in duration-200"
         >
@@ -585,11 +598,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                     }
                   }}
                   aria-label={`Jump to photo ${idx + 1}`}
-                  className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-xs overflow-hidden border-2 transition-all cursor-pointer shrink-0 shadow-2xs ${
-                    activeScrollIndex === idx
+                  className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-xs overflow-hidden border-2 transition-all cursor-pointer shrink-0 shadow-2xs ${activeScrollIndex === idx
                       ? "border-black scale-105 opacity-100 ring-2 ring-black/20"
                       : "border-neutral-200/80 opacity-60 hover:opacity-100 bg-white"
-                  }`}
+                    }`}
                 >
                   <Image
                     src={img}
@@ -617,11 +629,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                     }
                   }}
                   aria-label={`Jump to photo ${idx + 1}`}
-                  className={`relative w-11 h-11 rounded-xs overflow-hidden border-2 transition-all cursor-pointer shrink-0 shadow-2xs ${
-                    activeScrollIndex === idx
+                  className={`relative w-11 h-11 rounded-xs overflow-hidden border-2 transition-all cursor-pointer shrink-0 shadow-2xs ${activeScrollIndex === idx
                       ? "border-black scale-105 opacity-100 ring-2 ring-black/20"
                       : "border-neutral-200/80 opacity-60 hover:opacity-100 bg-white"
-                  }`}
+                    }`}
                 >
                   <Image
                     src={img}
