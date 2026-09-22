@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
   },
   images: {
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     qualities: [75, 85],
     minimumCacheTTL: 86400,

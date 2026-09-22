@@ -49,6 +49,7 @@ import {
   Shield,
   Key,
 } from "lucide-react";
+import { compressImage } from "@/lib/image-compression";
 
 export default function AdminPage() {
   const {
@@ -570,10 +571,11 @@ export default function AdminPage() {
     setUploadingCount(filesToProcess.length);
 
     try {
-      // Upload each file individually in parallel so request payload limits are never exceeded
+      // Compress and upload each file individually in parallel so request payload limits are never exceeded
       const uploadPromises = filesToProcess.map(async (file) => {
+        const compressedFile = await compressImage(file);
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressedFile);
 
         const res = await fetch("/api/upload", {
           method: "POST",
