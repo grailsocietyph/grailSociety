@@ -15,6 +15,7 @@ export interface DbProduct {
   title: string;
   price_num: number;
   price_formatted: string;
+  discounted_price: number | null;
   collection_slug: string;
   tag_size: string;
   measurements_data: Record<string, string | undefined>;
@@ -55,6 +56,9 @@ export function mapDbProductToProduct(row: DbProduct): Product {
     title: row.title,
     priceNum: Number(row.price_num) || 0,
     priceFormatted: row.price_formatted,
+    discountedPrice: row.discounted_price !== null && row.discounted_price !== undefined
+      ? Number(row.discounted_price)
+      : null,
     collectionSlug: row.collection_slug || "t-shirts",
     tagSize: row.tag_size || "M",
     measurementsData: {
@@ -83,6 +87,7 @@ export function mapProductToDbProduct(product: Partial<Product>): Partial<DbProd
   if (product.title !== undefined) dbItem.title = product.title;
   if (product.priceNum !== undefined) dbItem.price_num = product.priceNum;
   if (product.priceFormatted !== undefined) dbItem.price_formatted = product.priceFormatted;
+  if (product.discountedPrice !== undefined) dbItem.discounted_price = product.discountedPrice;
   if (product.collectionSlug !== undefined) dbItem.collection_slug = product.collectionSlug;
   if (product.tagSize !== undefined) dbItem.tag_size = product.tagSize;
   if (

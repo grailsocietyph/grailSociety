@@ -32,8 +32,8 @@ export default function NewArrivals() {
         <h1 className="text-4xl sm:text-5xl font-black text-neutral-900 tracking-tight">
           New Arrivals
         </h1>
-        <Link 
-          href="/new-arrivals" 
+        <Link
+          href="/new-arrivals"
           className="text-xs sm:text-sm font-normal text-neutral-700 hover:text-black no-underline underline-offset-4 transition-colors"
         >
           View all
@@ -68,9 +68,8 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
   return (
     <Link href={`/products/${product.id}`} className="w-full h-full flex flex-col justify-between group/card cursor-pointer">
       <div
-        className={`relative w-full overflow-hidden bg-white rounded-none mb-2 ${
-          isHero ? "h-[360px] sm:h-[420px] md:h-[calc(100%-3rem)] min-h-[380px]" : "aspect-square"
-        }`}
+        className={`relative w-full overflow-hidden bg-white rounded-none mb-2 ${isHero ? "h-[360px] sm:h-[420px] md:h-[calc(100%-3rem)] min-h-[380px]" : "aspect-square"
+          }`}
       >
         {/* Primary Image */}
         <Image
@@ -79,9 +78,8 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
           fill
           priority={isHero}
           sizes={isHero ? "(max-width: 768px) 100vw, 33vw" : "(max-width: 768px) 50vw, 33vw"}
-          className={`object-cover object-center transition-all duration-200 ease-out group-hover/card:scale-105 ${
-            hasSecondary ? "group-hover/card:opacity-0" : ""
-          }`}
+          className={`object-cover object-center transition-all duration-200 ease-out group-hover/card:scale-105 ${hasSecondary ? "group-hover/card:opacity-0" : ""
+            }`}
         />
 
         {/* Secondary Image (Preloaded & Fades in instantly on hover) */}
@@ -107,7 +105,14 @@ function ProductCard({ product, isHero = false }: { product: Product; isHero?: b
           {product.title}
         </h3>
         <p className="text-xs sm:text-sm font-medium text-neutral-900">
-          {product.priceFormatted}
+          {product.discountedPrice && product.discountedPrice > 0 && product.discountedPrice < product.priceNum ? (
+            <>
+              <span className="text-neutral-400 line-through mr-1.5">{product.priceFormatted}</span>
+              <span>{`₱${product.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+            </>
+          ) : (
+            product.priceFormatted
+          )}
         </p>
       </div>
     </Link>

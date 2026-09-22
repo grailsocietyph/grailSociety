@@ -7,8 +7,8 @@ import { useSearchParams } from "next/navigation";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useProducts, Product } from "@/context/ProductContext";
-import { 
-  LayoutGrid, 
+import {
+  LayoutGrid,
   Grid3X3,
   Check,
   SlidersHorizontal,
@@ -17,13 +17,13 @@ import {
   ArrowRight
 } from "lucide-react";
 
-type SortOption = 
-  | "Featured" 
-  | "Alphabetically, A-Z" 
-  | "Alphabetically, Z-A" 
-  | "Price, low to high" 
-  | "Price, high to low" 
-  | "Date, old to new" 
+type SortOption =
+  | "Featured"
+  | "Alphabetically, A-Z"
+  | "Alphabetically, Z-A"
+  | "Price, low to high"
+  | "Price, high to low"
+  | "Date, old to new"
   | "Date, new to old";
 
 function ShopContent() {
@@ -106,7 +106,7 @@ function ShopContent() {
 
         {/* Top padding offset with generous breathing room */}
         <section className="mx-auto max-w-360 px-4 sm:px-8 pt-32 sm:pt-36 lg:pt-40 pb-16">
-          
+
           {/* Main Title Header */}
           <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-8">
             <h1 className="text-4xl sm:text-5xl font-black text-neutral-900 tracking-tight">
@@ -128,7 +128,7 @@ function ShopContent() {
 
             {/* Right: Filter & Sort Button + Segmented Grid toggle */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              <button 
+              <button
                 onClick={() => setIsFilterSidebarOpen(true)}
                 className="flex items-center space-x-2 text-neutral-900 hover:text-black transition-colors focus:outline-none cursor-pointer font-medium text-xs sm:text-sm bg-neutral-100 hover:bg-neutral-200 px-3 sm:px-4 py-2 rounded-xl"
               >
@@ -138,27 +138,25 @@ function ShopContent() {
 
               {/* Segmented Grid Toggle (Always Visible on Mobile & Desktop) */}
               <div className="flex items-center bg-neutral-100 p-1 rounded-xl shrink-0">
-                <button 
+                <button
                   onClick={() => setIsDenseGrid(false)}
                   aria-label="Standard Grid View (2 items on mobile)"
                   title="Standard View (2-col on mobile)"
-                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                    !isDenseGrid 
-                      ? "bg-white text-black shadow-xs" 
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${!isDenseGrid
+                      ? "bg-white text-black shadow-xs"
                       : "text-neutral-400 hover:text-neutral-700"
-                  }`}
+                    }`}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => setIsDenseGrid(true)}
                   aria-label="Dense Grid View (3 items on mobile)"
                   title="Minimize / Dense View (3-col on mobile)"
-                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                    isDenseGrid 
-                      ? "bg-white text-black shadow-xs" 
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${isDenseGrid
+                      ? "bg-white text-black shadow-xs"
                       : "text-neutral-400 hover:text-neutral-700"
-                  }`}
+                    }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
@@ -168,11 +166,10 @@ function ShopContent() {
 
           {/* Product Grid (Default 2 items on mobile, 3 items dense) */}
           {filteredProducts.length > 0 ? (
-            <div className={`grid gap-x-3.5 sm:gap-x-4 gap-y-6 sm:gap-y-10 ${
-              isDenseGrid 
-                ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8" 
+            <div className={`grid gap-x-3.5 sm:gap-x-4 gap-y-6 sm:gap-y-10 ${isDenseGrid
+                ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
                 : "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            }`}>
+              }`}>
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -189,18 +186,18 @@ function ShopContent() {
       {isFilterSidebarOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">
           {/* Backdrop Overlay */}
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity" 
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
             onClick={() => setIsFilterSidebarOpen(false)}
           />
 
           <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
             <div className="w-screen max-w-md bg-white p-6 shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300">
-              
+
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-neutral-200">
                   <h2 className="text-lg font-bold text-neutral-900">Filter & Sort</h2>
-                  <button 
+                  <button
                     onClick={() => setIsFilterSidebarOpen(false)}
                     className="p-1 text-neutral-500 hover:text-black transition-colors cursor-pointer"
                   >
@@ -224,9 +221,8 @@ function ShopContent() {
                             <span className="w-6 flex justify-start shrink-0 text-neutral-900">
                               {isSelected && <Check className="h-4 w-4 stroke-[2.2]" />}
                             </span>
-                            <span className={`text-sm transition-colors ${
-                              isSelected ? "font-bold text-black" : "font-normal text-neutral-700 group-hover:text-black"
-                            }`}>
+                            <span className={`text-sm transition-colors ${isSelected ? "font-bold text-black" : "font-normal text-neutral-700 group-hover:text-black"
+                              }`}>
                               {opt}
                             </span>
                           </button>
@@ -240,20 +236,20 @@ function ShopContent() {
                     <h3 className="text-sm font-semibold text-neutral-900 mb-4">Availability</h3>
                     <div className="space-y-3 text-sm text-neutral-700">
                       <label className="flex items-center space-x-3 cursor-pointer select-none">
-                        <input 
-                          type="checkbox" 
-                          checked={inStockChecked} 
+                        <input
+                          type="checkbox"
+                          checked={inStockChecked}
                           onChange={(e) => setInStockChecked(e.target.checked)}
-                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer" 
+                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer"
                         />
                         <span>In stock</span>
                       </label>
                       <label className="flex items-center space-x-3 cursor-pointer select-none">
-                        <input 
-                          type="checkbox" 
-                          checked={outOfStockChecked} 
+                        <input
+                          type="checkbox"
+                          checked={outOfStockChecked}
                           onChange={(e) => setOutOfStockChecked(e.target.checked)}
-                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer" 
+                          className="h-4 w-4 rounded border-neutral-300 text-black focus:ring-0 accent-black cursor-pointer"
                         />
                         <span>Out of stock</span>
                       </label>
@@ -266,9 +262,9 @@ function ShopContent() {
                     <div className="flex items-center gap-3">
                       <div className="flex-1">
                         <label className="block text-[11px] text-neutral-500 uppercase mb-1">From</label>
-                        <input 
-                          type="number" 
-                          value={minPrice} 
+                        <input
+                          type="number"
+                          value={minPrice}
                           onChange={(e) => setMinPrice(e.target.value)}
                           placeholder="0"
                           className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black"
@@ -276,9 +272,9 @@ function ShopContent() {
                       </div>
                       <div className="flex-1">
                         <label className="block text-[11px] text-neutral-500 uppercase mb-1">To</label>
-                        <input 
-                          type="number" 
-                          value={maxPrice} 
+                        <input
+                          type="number"
+                          value={maxPrice}
                           onChange={(e) => setMaxPrice(e.target.value)}
                           placeholder="50000"
                           className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black"
@@ -292,7 +288,7 @@ function ShopContent() {
 
               {/* Bottom Apply & Reset Action */}
               <div className="pt-4 border-t border-neutral-200 flex gap-4">
-                <button 
+                <button
                   onClick={() => {
                     setInStockChecked(true);
                     setOutOfStockChecked(true);
@@ -304,7 +300,7 @@ function ShopContent() {
                 >
                   Reset
                 </button>
-                <button 
+                <button
                   onClick={() => setIsFilterSidebarOpen(false)}
                   className="w-full py-3 bg-black text-white text-sm font-medium hover:bg-neutral-800 transition-colors rounded-xl cursor-pointer"
                 >
@@ -342,8 +338,8 @@ function ProductCard({ product }: { product: Product }) {
   const [isInteracting, setIsInteracting] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const images = product.images && product.images.length > 0 
-    ? product.images 
+  const images = product.images && product.images.length > 0
+    ? product.images
     : ["https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9"];
   const hasMultiple = images.length > 1;
 
@@ -391,11 +387,11 @@ function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <Link 
-      href={`/products/${product.id}`} 
+    <Link
+      href={`/products/${product.id}`}
       className="group/card flex flex-col cursor-pointer"
     >
-      <div 
+      <div
         className="relative aspect-square w-full overflow-hidden bg-white rounded-none mb-3 select-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -415,9 +411,8 @@ function ProductCard({ product }: { product: Product }) {
               type="button"
               aria-label="Previous image"
               onClick={handlePrev}
-              className={`absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition-all duration-200 p-1 hover:scale-110 active:scale-90 cursor-pointer ${
-                isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
-              }`}
+              className={`absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition-all duration-200 p-1 hover:scale-110 active:scale-90 cursor-pointer ${isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
+                }`}
             >
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
             </button>
@@ -426,25 +421,22 @@ function ProductCard({ product }: { product: Product }) {
               type="button"
               aria-label="Next image"
               onClick={handleNext}
-              className={`absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition-all duration-200 p-1 hover:scale-110 active:scale-90 cursor-pointer ${
-                isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
-              }`}
+              className={`absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-20 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition-all duration-200 p-1 hover:scale-110 active:scale-90 cursor-pointer ${isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
+                }`}
             >
               <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.5]" />
             </button>
 
             {/* Subtle pagination dots */}
-            <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-1 transition-opacity duration-200 ${
-              isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
-            }`}>
+            <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-1 transition-opacity duration-200 ${isInteracting ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
+              }`}>
               {images.map((_, idx) => (
                 <span
                   key={idx}
-                  className={`h-1.5 rounded-full transition-all duration-200 ${
-                    idx === currentImageIndex 
-                      ? "w-3 bg-white drop-shadow-md" 
+                  className={`h-1.5 rounded-full transition-all duration-200 ${idx === currentImageIndex
+                      ? "w-3 bg-white drop-shadow-md"
                       : "w-1.5 bg-white/60 drop-shadow-xs"
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -463,7 +455,14 @@ function ProductCard({ product }: { product: Product }) {
           {product.title}
         </h3>
         <p className="text-xs sm:text-sm font-medium text-neutral-900">
-          {product.priceFormatted}
+          {product.discountedPrice && product.discountedPrice > 0 && product.discountedPrice < product.priceNum ? (
+            <>
+              <span className="text-neutral-400 line-through mr-1.5">{product.priceFormatted}</span>
+              <span>{`₱${product.discountedPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}</span>
+            </>
+          ) : (
+            product.priceFormatted
+          )}
         </p>
       </div>
     </Link>

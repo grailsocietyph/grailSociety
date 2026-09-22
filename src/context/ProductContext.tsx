@@ -8,6 +8,7 @@ export interface Product {
   title: string;
   priceNum: number;
   priceFormatted: string;
+  discountedPrice?: number | null;
   collectionSlug: string;
   tagSize: string;
   measurementsData: {
