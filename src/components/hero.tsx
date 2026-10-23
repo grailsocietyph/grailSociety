@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 
 interface HeroProps {
   backgroundImageUrl?: string;
@@ -13,20 +12,22 @@ export default function Hero({
   buttonText = "Shop now"
 }: HeroProps) {
   return (
-    <section className="relative w-full h-[640px] sm:h-[720px] lg:h-[82vh] overflow-hidden bg-neutral-900 font-helvetica">
-      {/* Background Image Container using optimized Next Image with priority */}
+    <section className="relative w-full h-160 sm:h-180 lg:h-[82vh] overflow-hidden bg-neutral-900 font-helvetica">
+      {/* Background Video Container */}
       <div className="absolute inset-0">
-        <Image
-          src={backgroundImageUrl}
-          alt="Streetwear Collection Hero"
-          fill
-          priority
-          quality={85}
-          sizes="100vw"
-          className="object-cover object-center transition-transform duration-700 hover:scale-105"
-        />
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={backgroundImageUrl}
+          aria-label="Streetwear Collection Hero"
+          className="h-full w-full object-cover object-center"
+        >
+          <source src="/hero-background.mp4" type="video/mp4" />
+        </video>
         {/* Subtle Contrast Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/50 via-black/20 to-transparent z-10 pointer-events-none" />
       </div>
 
       {/* Hero Content Overlay */}
