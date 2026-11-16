@@ -1807,27 +1807,30 @@ export default function AdminPage() {
                       <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
                         Collection Category
                       </label>
-                      <select
-                        tabIndex={3}
-                        value={collectionSlug}
-                        onChange={(e) => {
-                          setCollectionSlug(e.target.value);
-                          if (["bags", "accessories"].includes(e.target.value)) {
-                            setTagSize("N/A");
-                          }
-                        }}
-                        className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black transition-colors capitalize h-[46px]"
-                      >
-                        <option value="t-shirts">T-shirts and Polos</option>
-                        <option value="hoodies">Hoodies</option>
-                        <option value="sweaters">Sweaters and Long Sleeves</option>
-                        <option value="jackets">Jackets</option>
-                        <option value="shorts">Shorts</option>
-                        <option value="pants">Pants</option>
-                        <option value="bags">Bags</option>
-                        <option value="accessories">Accessories</option>
-                        <option value="shoes">Shoes</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          tabIndex={3}
+                          value={collectionSlug}
+                          onChange={(e) => {
+                            setCollectionSlug(e.target.value);
+                            if (["bags", "accessories"].includes(e.target.value)) {
+                              setTagSize("N/A");
+                            }
+                          }}
+                          className="w-full appearance-none px-4 pr-10 py-3 bg-white border border-neutral-300 rounded-xl text-sm focus:outline-none focus:border-black transition-colors capitalize h-[46px]"
+                        >
+                          <option value="t-shirts">T-shirts and Polos</option>
+                          <option value="hoodies">Hoodies</option>
+                          <option value="sweaters">Sweaters and Long Sleeves</option>
+                          <option value="jackets">Jackets</option>
+                          <option value="shorts">Shorts</option>
+                          <option value="pants">Pants</option>
+                          <option value="bags">Bags</option>
+                          <option value="accessories">Accessories</option>
+                          <option value="shoes">Shoes</option>
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-neutral-500" />
+                      </div>
                     </div>
                   </div>
 
@@ -1939,25 +1942,28 @@ export default function AdminPage() {
                             }`}
                         />
                       ) : (
-                        <select
-                          tabIndex={6}
-                          value={tagSize}
-                          onChange={(e) => {
-                            setTagSize(e.target.value);
-                            if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
-                          }}
-                          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                            }`}
-                        >
-                          <option value="N/A">N/A</option>
-                          <option value="One Size">One Size</option>
-                          <option value="XS">XS (Extra Small)</option>
-                          <option value="S">S (Small)</option>
-                          <option value="M">M (Medium)</option>
-                          <option value="L">L (Large)</option>
-                          <option value="XL">XL (Extra Large)</option>
-                          <option value="XXL">XXL (Double XL)</option>
-                        </select>
+                        <div className="relative">
+                          <select
+                            tabIndex={6}
+                            value={tagSize}
+                            onChange={(e) => {
+                              setTagSize(e.target.value);
+                              if (errors.tagSize) setErrors((prev) => ({ ...prev, tagSize: "" }));
+                            }}
+                            className={`w-full appearance-none px-4 pr-10 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.tagSize ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                              }`}
+                          >
+                            <option value="N/A">N/A</option>
+                            <option value="One Size">One Size</option>
+                            <option value="XS">XS (Extra Small)</option>
+                            <option value="S">S (Small)</option>
+                            <option value="M">M (Medium)</option>
+                            <option value="L">L (Large)</option>
+                            <option value="XL">XL (Extra Large)</option>
+                            <option value="XXL">XXL (Double XL)</option>
+                          </select>
+                          <ChevronDown className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-neutral-500" />
+                        </div>
                       )}
                       {errors.tagSize && (
                         <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
@@ -2172,22 +2178,26 @@ export default function AdminPage() {
                     <label className="block text-xs font-semibold text-neutral-800 uppercase mb-1.5">
                       Condition <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      tabIndex={10}
-                      value={condition}
-                      onChange={(e) => {
-                        setCondition(e.target.value);
-                        if (errors.condition) setErrors((prev) => ({ ...prev, condition: "" }));
-                      }}
-                      className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
-                        }`}
-                    >
-                      <option value="Excellent">Excellent</option>
-                      <option value="Good">Good</option>
-                      {condition && !["Excellent", "Good"].includes(condition) && (
-                        <option value={condition}>{condition}</option>
-                      )}
-                    </select>
+                    <div className="relative">
+                      <select
+                        tabIndex={10}
+                        value={condition}
+                        onChange={(e) => {
+                          setCondition(e.target.value);
+                          if (errors.condition) setErrors((prev) => ({ ...prev, condition: "" }));
+                        }}
+                        className={`w-full appearance-none px-4 pr-10 py-3 bg-white border rounded-xl text-sm focus:outline-none transition-colors h-[46px] ${errors.condition ? "border-red-500 ring-1 ring-red-500 bg-red-50/20" : "border-neutral-300 focus:border-black"
+                          }`}
+                      >
+                        <option value="Excellent">Excellent</option>
+                        <option value="Good">Good</option>
+                        <option value="Worn">Worn</option>
+                        {condition && !["Excellent", "Good", "Worn"].includes(condition) && (
+                          <option value={condition}>{condition}</option>
+                        )}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-neutral-500" />
+                    </div>
                     {errors.condition && (
                       <p className="text-xs text-red-600 mt-1 font-medium flex items-center gap-1">
                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
